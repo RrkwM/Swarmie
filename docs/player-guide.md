@@ -1,95 +1,100 @@
+English | [简体中文](player-guide.zh-CN.md)
+
 # Player Guide
 
-> 适用于 **Swarmie 0.1.0**。当前是管理员/开发者预览，不是完整生存玩法。
+> Applies to **Swarmie 0.1.0**. This is an administrator/developer preview, not a
+> complete survival gameplay implementation.
 
-## 1. 前置条件
+## 1. Requirements
 
-| 组件 | 版本 |
+| Component | Version |
 |---|---|
 | Minecraft | 26.3 |
 | Fabric Loader | 0.20.1 |
 | Fabric API | 0.165.0+26.3 |
 | Java | 25 |
 
-缺少 Fabric API 或低于 Java 25 时，游戏不会正常加载 Swarmie。
+Swarmie will not load without Fabric API or with a JDK below 25.
 
-## 2. 安装
+## 2. Install
 
-1. 安装 Fabric Loader 0.20.1 到 Minecraft 26.3。
-2. 从 [Releases](https://github.com/RrkwM/Swarmie/releases) 下载：
+1. Install Fabric Loader 0.20.1 for Minecraft 26.3.
+2. Download from [Releases](https://github.com/RrkwM/Swarmie/releases):
    - `swarmie-0.1.0.jar`
    - `swarmie-0.1.0.jar.sha256`
-3. 把 `swarmie-0.1.0.jar` 放入游戏目录的 `mods/`。
-4. 把对应版本的 Fabric API 也放入 `mods/`。
-5. 启动游戏。日志中应出现：
+3. Put `swarmie-0.1.0.jar` in the game `mods/` directory.
+4. Put the matching Fabric API JAR in `mods/` too.
+5. Start the game. The log should contain:
 
 ```text
 Swarmie initialized; registered entity type swarmie:swarmie
 ```
 
-### 校验下载
+### Verify the download
 
 ```powershell
 Get-FileHash .\swarmie-0.1.0.jar -Algorithm SHA256
 ```
 
-应得到 Release 页面公布的 SHA-256。
+Compare it with the SHA-256 published on the Release page.
 
-## 3. 当前如何获得机器人
+## 3. How to get a robot
 
-**0.1.0 没有合成配方、物品或刷怪蛋。** 这是当前最重要的使用限制。
+**0.1.0 has no crafting recipe, item, or spawn egg.** This is the most important
+current limitation.
 
-需要 OP/权限等级 2，使用：
+An OP/permission-level-2 player must use:
 
 ```mcfunction
 /summon swarmie:swarmie ~ ~ ~
 ```
 
-查询已加载机器人：
+Find loaded robots:
 
 ```mcfunction
 /swarmie status @e[type=swarmie:swarmie,limit=1]
 ```
 
-选择器必须使用命名空间 ID：
+Use the namespaced selector:
 
 ```text
 @e[type=swarmie:swarmie]
 ```
 
-不要只写 `swarmie`，否则会被解析为 `minecraft:swarmie`。
+Do not write only `swarmie`; it is parsed as `minecraft:swarmie`.
 
-## 4. 基础命令
+## 4. Basic commands
 
-所有 `/swarmie` 命令都需要 OP/权限等级 2。
+All `/swarmie` commands require OP/permission level 2.
 
-### 飞行与停止
+### Flight and stop
 
 ```mcfunction
 /swarmie fly @e[type=swarmie:swarmie] 0.1 0 0 20
 /swarmie stop @e[type=swarmie:swarmie]
 ```
 
-`fly` 参数：
+`fly` arguments:
 
 ```text
-x y z         速度，单位 blocks/tick
-duration      持续 tick，范围 1..6000
+x y z         velocity in blocks/tick
+duration      ticks, range 1..6000
 ```
 
-这是速度控制，不是“移动到坐标”。持续时间结束后机器人会减速停止。
+This controls velocity; it is not "move to coordinates". The robot decelerates
+after the duration.
 
-### 状态与结果
+### Status and results
 
 ```mcfunction
 /swarmie status @e[type=swarmie:swarmie,limit=1]
 /swarmie results @e[type=swarmie:swarmie,limit=1]
 ```
 
-- `status`：当前命令、排队数、保留结果数；
-- `results`：最近 5 条命令结果。
+- `status`: current command, queued count and retained results;
+- `results`: the latest five command results.
 
-### 取消
+### Cancel
 
 ```mcfunction
 /swarmie cancel @e[type=swarmie:swarmie]
@@ -97,46 +102,48 @@ duration      持续 tick，范围 1..6000
 /swarmie cancelid @e[type=swarmie:swarmie] 3
 ```
 
-排队中的命令取消后不会执行；正在飞行的命令会停止，但已经产生的位移不可回滚。
+A queued command is cancelled before execution. Active flight stops, but
+movement already produced cannot be rolled back.
 
-### 挖掘
+### Mining
 
 ```mcfunction
 /swarmie mine @e[type=swarmie:swarmie,limit=1] 100 64 100
 ```
 
-- 目标必须在机器人 6 格范围内；
-- 目标区块必须已加载；
-- 掉落物留在世界中，**不会自动进入机器人库存**；
-- 工具使用机器人当前选中槽。
+- target must be within the 6-block interaction range;
+- target chunk must be loaded;
+- drops remain in the world and are **not** automatically collected;
+- the robot's selected slot is used.
 
-### 使用物品/放置
+### Use item / place
 
 ```mcfunction
 /swarmie use @e[type=swarmie:swarmie,limit=1] 100 63 100 up
 ```
 
-face 可选：
+Faces:
 
 ```text
 down up north south east west
 ```
 
-- 使用机器人当前选中槽的物品；
-- `inventory give` 只插入库存，不保证切换选中槽；
-- 标准 GUI 容器（箱子、熔炉、漏斗等）目前不能真正打开；
-- 箱子交互返回成功也不代表内容发生变化。
+- uses the robot's currently selected slot;
+- `inventory give` inserts items but does not necessarily select the slot;
+- standard GUI containers (chests, furnaces, hoppers, ...) cannot actually be
+  opened;
+- a successful chest interaction does not mean contents changed.
 
-### 库存
+### Inventory
 
 ```mcfunction
 /swarmie inventory give @e[type=swarmie:swarmie,limit=1] minecraft:stone 1
 /swarmie inventory show @e[type=swarmie:swarmie,limit=1]
 ```
 
-库存为 9 槽，选中槽显示为 `*`。
+Nine slots; the selected slot is marked with `*`.
 
-### 查询与传感器
+### Query and sensor
 
 ```mcfunction
 /swarmie query block 100 64 100
@@ -144,49 +151,52 @@ down up north south east west
 /swarmie sensor scan @e[type=swarmie:swarmie,limit=1] 8
 ```
 
-查询是只读操作；不会隐式加载区块。传感器最多 64 个结果，LOS 当前未支持。
+Queries are read-only and do not implicitly load chunks. The sensor returns at
+most 64 results; line-of-sight is not supported.
 
-### 低层速度（调试）
+### Low-level velocity (debug)
 
 ```mcfunction
 /swarmie velocity @e[type=swarmie:swarmie] 0.1 0 0
 ```
 
-这条路径绕过 Runtime 队列和命令结果，只适合调试；正式操作请使用 `fly`/`stop`。
+This bypasses the Runtime queue and command results. Use `fly`/`stop` for normal
+operations.
 
-## 5. 生命周期行为
+## 5. Lifecycle
 
-- 区块卸载/重载后，机器人 UUID 和库存保留；
-- 运行中或排队中的命令在卸载时变为 `INTERRUPTED`，不会在重载后恢复；
-- 维度切换不会把机器人当作永久删除；
-- `/kill` 等永久删除会产生 `REMOVED`；
-- 命令结果和事件不会跨服务器进程持久化。
+- UUID and inventory survive chunk unload/reload;
+- active and queued commands become `INTERRUPTED` on unload and do not resume;
+- dimension changes are not treated as permanent deletion;
+- `/kill` and other permanent removal produce `REMOVED`;
+- command results and events do not persist across server processes.
 
-## 6. 故障排查
+## 6. Troubleshooting
 
-| 现象 | 处理 |
+| Symptom | Action |
 |---|---|
-| 游戏启动时没有 Swarmie | 检查 Java 25、Fabric Loader、Fabric API、`mods/` 中的 JAR |
-| `/swarmie` 提示无权限 | 需要 OP/权限等级 2 |
-| 找不到机器人 | 确认已 `/summon`，并使用 `@e[type=swarmie:swarmie]` |
-| `MINE_BLOCK FAILED (target is air)` | 目标坐标是空气，换一个实体方块 |
-| `target is outside interaction range` | 目标距机器人超过 6 格 |
-| `UNLOADED_CHUNK` | 先让目标区块加载 |
-| 箱子没有打开 | 当前 FakePlayer 路径不支持 GUI 容器，属于已知限制 |
-| 放置失败返回 `Pass[]` | 当前选中槽物品不能用于该方块；`inventory give` 不会自动切换选中槽 |
+| No Swarmie at startup | Check Java 25, Fabric Loader/API, and the JAR in `mods/` |
+| `/swarmie` says no permission | Requires OP/permission level 2 |
+| Robot not found | Summon it and use `@e[type=swarmie:swarmie]` |
+| `MINE_BLOCK FAILED (target is air)` | Choose a solid block |
+| `target is outside interaction range` | Move within 6 blocks |
+| `UNLOADED_CHUNK` | Load the target chunk first |
+| Chest does not open | FakePlayer GUI containers are unsupported |
+| Placement returns `Pass[]` | The selected item cannot be used on that block |
 
-## 7. 当前限制
+## 7. Current limitations
 
-- 没有合成、物品、刷怪蛋或生存获取方式；
-- 没有 AI、寻路、自动避障、任务编排；
-- 没有 GUI 容器操作；
-- 没有远程/公网控制；localhost JSONL 仅开发者调试用；
-- 专用服务器、第二客户端、LOS、部分碰撞边界未验证；
-- 0.1.0 是 pre-1.0 版本，行为和 Adapter 契约仍可能变化。
+- No survival acquisition (recipe/item/spawn egg) yet;
+- no AI, pathfinding, obstacle avoidance or task orchestration;
+- no GUI-container support;
+- no remote/public network; localhost JSONL is developer-only;
+- dedicated server, second client, LOS and some collision boundaries are
+  unverified;
+- 0.1.0 is pre-1.0; behavior and Adapter contracts may change.
 
-## 8. 下一步阅读
+## 8. Next
 
 - [Developer Guide](developer-guide.md)
 - [Adapter command specs](adapter-command-specs.md)
 - [Test matrix](test-matrix.md)
-- [Troubleshooting/FAQ](wiki/FAQ.md)
+- [FAQ](wiki/FAQ.md)

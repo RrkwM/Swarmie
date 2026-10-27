@@ -1,3 +1,5 @@
+English | [简体中文](Installation-zh-CN)
+
 # Installation
 
 ## Requirements
@@ -40,3 +42,4 @@ The release page publishes the expected SHA-256.
 A dedicated-server smoke test has not been completed. Use the client preview
 unless you are prepared to test server startup yourself. The mod declares
 `environment: "*"`, but that is not a claim of dedicated-server verification.
+

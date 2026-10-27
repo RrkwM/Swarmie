@@ -1,3 +1,5 @@
+[English](CHANGELOG.md) | [简体中文](CHANGELOG.zh-CN.md)
+
 # Changelog
 
 All notable changes to Swarmie are documented here. The format follows
@@ -13,6 +15,8 @@ All notable changes to Swarmie are documented here. The format follows
   [Developer Guide](docs/developer-guide.md).
 - Published GitHub Wiki navigation, player/developer summaries, installation
   and FAQ pages.
+- Added English-default bilingual documentation; Simplified Chinese versions use
+  `.zh-CN` files and `-zh-CN` Wiki pages.
 - Anonymized maintainer-local absolute paths in the public tree.
 
 ## [0.1.0] - 2026-10-28
@@ -65,3 +69,4 @@ and command semantics are not yet stable.
   high-speed/diagonal/stair/ceiling collision cases are unverified.
 - The localhost JSONL transport has no authentication, TLS, remote binding, or
   multi-user security model.
+

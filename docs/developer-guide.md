@@ -1,10 +1,13 @@
+English | [简体中文](developer-guide.zh-CN.md)
+
 # Developer Guide
 
-> Swarmie `0.1.0` / Adapter contract `0.1`。这是 pre-1.0 项目，公共契约尚未稳定。
+> Swarmie `0.1.0` / Adapter contract `0.1`. This is a pre-1.0 project; the
+> public contract is not yet stable.
 
-## 1. 技术栈
+## 1. Stack
 
-| 组件 | 版本 |
+| Component | Version |
 |---|---|
 | Minecraft | 26.3 |
 | Fabric Loader | 0.20.1 |
@@ -13,39 +16,40 @@
 | Gradle | 9.8.2 |
 | Java | 25 |
 
-版本来源：`gradle/libs.versions.toml` 和 `gradle.properties`。
+Versions live in `gradle/libs.versions.toml` and `gradle.properties`.
 
-## 2. 仓库结构
+## 2. Repository layout
 
 ```text
-contract/                        纯 Java 契约子项目
+contract/                        pure Java contract subproject
   src/main/java/dev/swarmie/contract/
   src/test/java/dev/swarmie/contract/
 
 src/main/java/dev/swarmie/
-  SwarmieMod.java                入口、EntityType、Fabric 事件
-  SwarmieEntity.java             真实 Entity 身体
-  SwarmieFlightController.java   速度控制
-  runtime/                       FIFO、命令状态机
-  interaction/                   FakePlayer 原生交互
-  inventory/                     9 槽库存
-  query/                         世界查询
-  sensor/                        本地传感器
-  command/                       /swarmie 调试命令
+  SwarmieMod.java                entry point, EntityType, Fabric events
+  SwarmieEntity.java             real Entity body
+  SwarmieFlightController.java   velocity control
+  runtime/                       FIFO and command state machine
+  interaction/                   FakePlayer native interaction
+  inventory/                     nine-slot inventory
+  query/                         world query
+  sensor/                        local sensor
+  command/                       /swarmie debug commands
   adapter/
-    registry/                    机器人注册表
-    event/                       有界事件环、事件总线
-    io/                          入站队列/幂等
-    transport/                   默认关闭的 localhost JSONL
+    registry/                    robot registry
+    event/                       bounded event ring and bus
+    io/                          inbound queue and idempotency
+    transport/                   default-off localhost JSONL
 
-src/test/                        主 Mod JUnit
-docs/                            规范、证据、交接
-.github/workflows/ci.yml          CI
+src/test/                        main-mod JUnit
+docs/                            specs, evidence, handoff
+.github/workflows/ci.yml         CI
 ```
 
-## 3. 本地开发
+## 3. Local development
 
-需要 JDK 25，不需要项目内 `tools/` 工具链：
+JDK 25 is required. The project-local `tools/` tree is not needed for a fresh
+clone.
 
 ```bash
 git clone https://github.com/RrkwM/Swarmie.git
@@ -55,7 +59,7 @@ cd Swarmie
 ./gradlew runClient
 ```
 
-Windows：
+Windows:
 
 ```powershell
 .\gradlew.bat test
@@ -63,52 +67,53 @@ Windows：
 .\gradlew.bat runClient
 ```
 
-可选快速进入测试世界：
+Optional quick test world:
 
 ```powershell
 .\gradlew.bat runClient -PswarmieQuickPlay="New World"
 ```
 
-产物：
+Output:
 
 ```text
 build/libs/swarmie-0.1.0.jar
 ```
 
-## 4. 分层架构
+## 4. Layers
 
 ```text
 Minecraft layer
-  Entity / ServerLevel / native move & collision / blocks & items
+  Entity / ServerLevel / native movement, collision, blocks/items
         │
 Runtime + capabilities
   SwarmieRuntime FIFO / InteractionActor / WorldQuery / LocalSensor
         │
 Adapter layer
-  contract / registry / event store / inbound-outbound queues / transport
+  contract / registry / event store / inbound and outbound queues / transport
         │
 Future external control plane
 ```
 
-硬边界：
+Hard rules:
 
-- Minecraft 负责位置、碰撞、方块/物品原生行为；
-- Runtime 只调度命令，不遍历世界，不持有 FakePlayer；
-- Contract 包不得 import `net.minecraft.*` 或 `net.fabricmc.*`；
-- 外部控制通过 Adapter，不直接引用 `SwarmieEntity`；
-- 经典调试命令（`velocity`、`inventory`、`query`、`sensor`）不是公共契约。
+- Minecraft owns position, collision and native block/item behavior;
+- Runtime schedules commands; it does not traverse the world or hold a FakePlayer;
+- the contract package must not import `net.minecraft.*` or `net.fabricmc.*`;
+- external control uses Adapter contracts, never `SwarmieEntity`;
+- classic debug commands (`velocity`, `inventory`, `query`, `sensor`) are not
+  public contracts.
 
-## 5. 契约与 Adapter
+## 5. Contract and Adapter
 
 ### Contract
 
-`:contract` 是独立纯 Java 子项目，主 Mod 使用：
+`:contract` is an independent pure Java subproject used by the main mod:
 
 ```kotlin
 implementation(project(":contract"))
 ```
 
-当前四个命令：
+Current commands:
 
 ```java
 CommandSpec.TimedFlight
@@ -117,8 +122,8 @@ CommandSpec.MineBlock
 CommandSpec.UseItemOnBlock
 ```
 
-核心 DTO：`RobotId`、`CommandSubmission`、`SubmitAck`、`CommandResult`、
-`CancelAck`、`RobotEvent`、`EventBatch`。
+Core DTOs: `RobotId`, `CommandSubmission`, `SubmitAck`, `CommandResult`,
+`CancelAck`, `RobotEvent`, `EventBatch`.
 
 ### Submit
 
@@ -130,24 +135,24 @@ SubmitAck ack = SwarmieAdapter.submit(
         "my-correlation-id");
 ```
 
-- `ACCEPTED` 只表示入站接受，不是执行保证；
-- 相同 correlation/robot/command 返回 `DUPLICATE`；
-- 内容冲突返回 `CORRELATION_CONFLICT`；
-- Runtime 满/卸载等终态以事件为准。
+- `ACCEPTED` means inbound acceptance, not execution completion;
+- same correlation/robot/command returns `DUPLICATE`;
+- a different command with the same correlation returns `CORRELATION_CONFLICT`;
+- terminal states (runtime full, unload, ...) are delivered as events.
 
 ### Events
 
 ```java
 EventBatch batch = SwarmieAdapter.readEvents(lastSequence, 64);
 AdapterEventBus.Subscription sub = SwarmieAdapter.subscribe(b -> {
-    // 必须快速返回；不要在这里做 socket/磁盘/阻塞 I/O
+    // Must return quickly; no socket/disk/blocking work here.
 });
 ```
 
-- `serverEpoch` 区分服务器会话；
-- `sequence` 在 epoch 内连续递增；
-- `missed` 表示消费者游标早于最旧保留事件；
-- 事件环容量 1024，溢出会覆盖最旧事件。
+- `serverEpoch` identifies a server session;
+- `sequence` is contiguous within an epoch;
+- `missed` means the cursor is older than the oldest retained event;
+- the ring holds 1024 events and evicts the oldest.
 
 ### Cancel
 
@@ -155,49 +160,50 @@ AdapterEventBus.Subscription sub = SwarmieAdapter.subscribe(b -> {
 CancelAck ack = SwarmieAdapter.cancel(robot, "my-correlation-id");
 ```
 
-`ACCEPTED` 只表示取消请求已排队；终态为 `COMMAND_CANCELLED`。
-未知 correlation 返回 `UNKNOWN`，已终态返回 `ALREADY_TERMINAL`。
+`ACCEPTED` only means the request is queued; the terminal event is
+`COMMAND_CANCELLED`. Unknown correlations return `UNKNOWN`; already-terminal
+commands return `ALREADY_TERMINAL`.
 
-## 6. 线程与生命周期
+## 6. Threading and lifecycle
 
-- `SwarmieAdapter.submit/cancel` 可从任意线程调用；
-- 提交只做纯数据校验、registry 快照、幂等检查和有界入队；
-- 所有实体/Runtime 操作在 `START_SERVER_TICK` 的服务器线程执行；
-- `END_SERVER_TICK` 发布事件；
-- 监听器异常被隔离，但监听器必须非阻塞；
-- 卸载时 Runtime active/queued 命令和入站队列命令都会终止；
-- 重载不会恢复旧命令；
-- 维度切换不产生 `REMOVED`，而是 `ROBOT_DIMENSION_CHANGED` + 重新加载。
+- `SwarmieAdapter.submit/cancel` may be called from any thread;
+- submission only performs pure validation, registry snapshot, idempotency
+  checks and bounded enqueue;
+- entity/Runtime work runs on the server thread at `START_SERVER_TICK`;
+- events are published at `END_SERVER_TICK`;
+- listener exceptions are isolated, but listeners must be non-blocking;
+- unload terminates Runtime active/queued and inbound commands;
+- reload does not resume old commands;
+- dimension changes produce `ROBOT_DIMENSION_CHANGED` and a reload, not
+  `REMOVED`.
 
-详细规则：
+Details:
 
 - [`adapter-registry.md`](adapter-registry.md)
 - [`adapter-io.md`](adapter-io.md)
 - [`adapter-command-specs.md`](adapter-command-specs.md)
 
-## 7. 测试与证据
+## 7. Tests and evidence
 
 ```bash
 ./gradlew test
 ```
 
-当前基线：43 项 JUnit。
+Current baseline: 43 JUnit tests.
 
-测试分布：
+- `contract/`: contract, batch, cancel;
+- `adapter/event`: event ring and bus;
+- `adapter/io`: capacity, budget, idempotency, conflicts, concurrency;
+- `adapter/registry`: lifecycle states and dimension changes;
+- `runtime`: FIFO, cancellation, unload interruption, events;
+- interaction/sensing/flight: non-regression.
 
-- `contract/`：契约、batch、cancel；
-- `adapter/event`：事件环、bus；
-- `adapter/io`：入站容量/预算/幂等/冲突/并发；
-- `adapter/registry`：生命周期三态、维度切换；
-- `runtime`：FIFO、取消、卸载中断、事件；
-- `interaction`、`sensing`、`flight`：既有能力非回归。
+Do not substitute unit tests for a real-client check. Evidence classes and
+unverified items are in [`test-matrix.md`](test-matrix.md).
 
-不要用 JUnit 通过替代真实客户端验证。证据分层和未验证项见
-[`test-matrix.md`](test-matrix.md)。
+## 8. Debugging
 
-## 8. 开发者调试
-
-### `/swarmie` 调试命令
+### `/swarmie` commands
 
 - `status/results/cancel/cancelid/cancelall`
 - `mine/use`
@@ -206,23 +212,24 @@ CancelAck ack = SwarmieAdapter.cancel(robot, "my-correlation-id");
 - `sensor scan`
 - `velocity`
 
-这些是开发/管理工具，不是正式 Adapter API。
+These are developer/admin tools, not the public Adapter API.
 
 ### localhost JSONL
 
-默认关闭。启用方式见 [`local-transport.md`](local-transport.md)：
+Default off. See [`local-transport.md`](local-transport.md):
 
 ```text
 run/config/swarmie-transport.json
 ```
 
-只监听 `127.0.0.1`，无认证/TLS/远程安全模型。Python 客户端：
+It binds only `127.0.0.1` and has no authentication, TLS, or remote security
+model. Python client:
 
 ```bash
 python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
 ```
 
-### Adapter 诊断
+### Adapter diagnostics
 
 ```text
 /swarmie adapter status
@@ -230,46 +237,46 @@ python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
 /swarmie adapter submit <target> stop <correlation>
 ```
 
-## 9. 扩展点与约束
+## 9. Extension boundaries
 
-当前可替换：
+Replaceable today:
 
-- `WorldQuery` / `DefaultWorldQuery`；
-- `LocalSensor` / `DefaultLocalSensor`；
-- `InteractionHandler` / `InteractionActor`；
-- Adapter 契约、registry、events、io、transport 的内部实现。
+- `WorldQuery` / `DefaultWorldQuery`;
+- `LocalSensor` / `DefaultLocalSensor`;
+- `InteractionHandler` / `InteractionActor`;
+- internal Adapter contract, registry, events, I/O and transport.
 
-当前**没有**通用 capability registry、脚本运行时、全局调度器或网络服务。
-新增正式命令需要同时更新：
+There is no generic capability registry, script runtime, global scheduler or
+network service. Adding a real command requires:
 
-1. `CommandSpec` / `CommandType`；
-2. contract 测试；
-3. Runtime command 与 Adapter 分发；
-4. 命令规格和测试矩阵；
-5. 版本号/CHANGELOG（如改变公共行为）。
+1. `CommandSpec` / `CommandType`;
+2. contract tests;
+3. Runtime command and Adapter dispatch;
+4. command specs and test matrix;
+5. version/changelog changes for public behavior.
 
-不要：
+Do not:
 
-- 用 `setBlock(AIR)` 代替原生挖掘；
-- 伪造 FakePlayer 的完整连接；
-- 把调试命令当公共 API；
-- 在服务器 tick 线程做 socket/磁盘/阻塞等待；
-- 把 API `SUCCESS` 直接宣称为世界副作用完成。
+- use `setBlock(AIR)` instead of native mining;
+- fake a complete FakePlayer connection;
+- treat debug commands as public APIs;
+- perform socket/disk/blocking I/O on the server tick thread;
+- claim a world side effect solely because an API returned `SUCCESS`.
 
-## 10. 版本与发布
+## 10. Versioning and releases
 
-遵循 Semantic Versioning，见 [`versioning.md`](versioning.md)。
+Swarmie follows Semantic Versioning; see [`versioning.md`](versioning.md).
 
-发布流程概要：
+Release outline:
 
-1. 更新 `mod_version`，去掉 `-SNAPSHOT`；
-2. 更新 `CHANGELOG.md`；
-3. `./gradlew test build`；
-4. CI 通过；
-5. 打 annotated tag `vX.Y.Z`；
-6. GitHub Release 附带 JAR + `.sha256`。
+1. update `mod_version` and remove `-SNAPSHOT`;
+2. update `CHANGELOG.md`;
+3. run `./gradlew test build`;
+4. wait for CI success;
+5. create annotated tag `vX.Y.Z`;
+6. publish a GitHub Release with the JAR and `.sha256`.
 
-## 11. 阅读顺序
+## 11. Reading order
 
 1. [`player-guide.md`](player-guide.md)
 2. [`adapter-contract.md`](adapter-contract.md)

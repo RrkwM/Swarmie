@@ -1,58 +1,45 @@
+English | [简体中文](adapter-contract.zh-CN.md)
+
 # Adapter Contract 0.1
 
-> 状态：Prompt 1（修订版）最小契约。**0.x 明确不稳定**，可在 Adapter 重构过程中调整。
->
-> Gradle 子项目：`:contract`
->
-> 包：`dev.swarmie.contract`
->
-> 契约版本：`0.1`（`ContractVersion.CURRENT`）
+> Status: pre-stable `0.x`. The contract may change during Adapter development.
 
-## 1. 硬边界
+## 1. Boundary
 
-`:contract` 是独立的纯 Java Gradle 子项目：
+`:contract` is an independent pure Java Gradle subproject:
 
-- `contract/build.gradle.kts` 只应用 `java-library`；
-- 编译 classpath 不包含 Minecraft、Fabric、Loom 或游戏类型；
-- 不依赖主 Mod 的类；
-- 不依赖 `:contract` 之外的任何实现模块。
+- no Minecraft, Fabric, Loom or game types on its compile classpath;
+- no dependency on the main mod;
+- only records/enums/collections/UUID/IDs.
 
-契约源码禁止：
+Forbidden in the contract package:
 
 ```text
 net.minecraft.*
 net.fabricmc.*
 ```
 
-检查命令：
+Compile isolation is enforced by `:contract:compileJava`; `java-library` is the
+only production plugin.
 
-```powershell
-pwsh -NoProfile -File .\tools\scripts\check-contract-boundary.ps1
-```
-
-编译隔离不是 import 扫描替代的：`:contract:compileJava` 本身就是独立编译。
-
-## 2. 版与兼容性
+## 2. Versioning
 
 ```text
 ContractVersion.CURRENT = 0.1
 ```
 
-0.x 规则：
+- major mismatch: reject;
+- peer minor newer than local: reject;
+- unknown fields: ignore;
+- missing required fields: reject;
+- unknown command/ordinary enum: reject;
+- unknown event type: may map to `UNKNOWN`, never execute.
 
-- 当前只用于本项目内部 Adapter，不承诺正式外部兼容；
-- major 不同：拒绝；
-- peer minor 高于当前实现：拒绝；
-- 未知字段：忽略；
-- 缺失必填字段：拒绝；
-- 未知命令类型/普通枚举：拒绝，不得猜测默认行为；
-- 未知事件类型：消费方可映射为 `RobotEventType.UNKNOWN`，不得执行命令。
+Wire compatibility is not promised for `0.x`.
 
-正式兼容性规则将在契约进入 1.x 时确定。
+## 3. Commands
 
-## 3. 只覆盖四条命令
-
-`CommandType`：
+`CommandType`:
 
 ```text
 TIMED_FLIGHT
@@ -61,108 +48,84 @@ MINE_BLOCK
 USE_ITEM_ON_BLOCK
 ```
 
-`CommandSpec` 是 sealed interface：
+`CommandSpec` is a sealed interface:
 
-| type | 字段 |
+| type | fields |
 |---|---|
-| `TIMED_FLIGHT` | `Vec3Dto velocity`、`int durationTicks` |
-| `STOP` | 无 |
+| `TIMED_FLIGHT` | `Vec3Dto velocity`, `int durationTicks` |
+| `STOP` | none |
 | `MINE_BLOCK` | `BlockPosDto position` |
-| `USE_ITEM_ON_BLOCK` | `BlockPosDto position`、`DirectionDto face`、`Vec3Dto hit` |
+| `USE_ITEM_ON_BLOCK` | `BlockPosDto position`, `DirectionDto face`, `Vec3Dto hit` |
 
-约束：
+Constraints:
 
-- `durationTicks`：`1..6000`；
-- 速度/命中点必须是有限浮点数；
-- 方块坐标使用整数 `BlockPosDto`，不得传实体浮点坐标；
-- `face` 六方向之一。
+- `durationTicks`: `1..6000`;
+- vectors must be finite;
+- block coordinates use integer `BlockPosDto`;
+- `face` is one of six directions.
 
-**明确不在契约中**（仍保留为 OP 调试工具，不产生 Adapter 命令事件）：
+Debug commands `velocity`, `inventory`, `query` and `sensor` are **not** public
+contract commands and do not produce Adapter command events.
 
-```text
-/swarmie velocity
-/swarmie inventory give
-/swarmie inventory show
-/swarmie query block
-/swarmie query region
-/swarmie sensor scan
-```
+## 4. Coordinates and identifiers
 
-它们不是正式 Adapter 命令，也不属于本轮公共 API。
+- `RobotId`: stable UUID;
+- `BlockPosDto(int x, int y, int z)`: absolute block position;
+- `Vec3Dto(double x, double y, double z)`: entity position, velocity or hit;
+- `DirectionDto`: `DOWN/UP/NORTH/SOUTH/EAST/WEST`;
+- resource IDs are namespaced strings.
 
-## 4. 标识与坐标
+## 5. Submission
 
-`RobotId`：稳定机器人 UUID。
-
-`BlockPosDto(int x, int y, int z)`：绝对方块整数坐标。
-
-`Vec3Dto(double x, double y, double z)`：速度/命中点等活动坐标；单位由命令定义
-（速度 blocks/tick，命中点 blocks）。
-
-`DirectionDto`：`DOWN/UP/NORTH/SOUTH/EAST/WEST`。
-
-## 5. 提交
-
-`CommandSubmission`：
+`CommandSubmission`:
 
 ```text
 RobotId robotId
-String correlationId       // 1..128，调用方稳定关联键
+String correlationId       // 1..128, caller-owned
 CommandSpec command
 ```
 
-`SubmitAck`：
+`SubmitAck`:
 
 ```text
 RobotId robotId
 String correlationId
 CommandType type
 AckStatus status           // ACCEPTED / REJECTED / DUPLICATE
-String internalCommandId?  // Runtime 接受后
-CommandState state?        // 已知状态；ACCEPTED 初始 QUEUED
-ErrorCode error?           // 拒绝时
+String internalCommandId?
+CommandState state?
+ErrorCode error?
 String message
 ```
 
-`ACCEPTED` 只表示 Adapter 收件边界接受，不等于 Runtime 已执行完成。
-`DUPLICATE` 表示相同 correlation/robot/命令已存在，返回已知 internalCommandId 和
-CommandState；`REJECTED` 的 conflict/backpressure 不走 Runtime。
-
-批量：
+`ACCEPTED` means the inbound boundary accepted the request, not that Runtime
+executed it. `DUPLICATE` returns the known internal ID/state. Batch:
 
 ```text
 BatchSubmission(List<CommandSubmission>)   // 1..64
-BatchSubmitAck(List<SubmitAck>)            // 逐条，不原子
+BatchSubmitAck(List<SubmitAck>)            // per item, not atomic
 ```
 
-取消：
+Cancel:
 
 ```text
 RobotId robotId
 String correlationId
 CancelStatus status       // ACCEPTED/REJECTED/ALREADY_TERMINAL/UNKNOWN
-CommandState state?       // 已知状态
+CommandState state?
 ErrorCode error?
 String message
 ```
 
-`CancelAck.ACCEPTED` 只表示取消请求已进入服务器线程队列；终态以
-`COMMAND_CANCELLED` 事件为准。
+`CancelAck.ACCEPTED` only means the cancellation is queued; the terminal event
+is `COMMAND_CANCELLED`.
 
-## 6. 结果与状态
+## 6. Results and state
 
-`CommandState`：
+`CommandState`: `QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED`,
+`INTERRUPTED`.
 
-```text
-QUEUED
-RUNNING
-SUCCEEDED
-FAILED
-CANCELLED
-INTERRUPTED
-```
-
-`CommandResult`：
+`CommandResult`:
 
 ```text
 RobotId robotId
@@ -173,12 +136,11 @@ ErrorCode error?
 String message
 ```
 
-当前四条命令没有额外 query/sensor payload。`INTERRUPTED` 表示实体卸载/移除导致
-无法继续；`CANCELLED` 表示显式取消。
+The four current commands have no query/sensor payload.
 
-## 7. 事件
+## 7. Events
 
-`RobotEvent`：
+`RobotEvent`:
 
 ```text
 String eventId
@@ -192,7 +154,7 @@ CommandResult commandResult?
 String detail?
 ```
 
-`RobotEventType`：
+Types:
 
 ```text
 ROBOT_LOADED
@@ -209,12 +171,11 @@ COMMAND_INTERRUPTED
 UNKNOWN
 ```
 
-`serverEpoch` 在每个服务器会话唯一；`sequence` 在 epoch 内从 1 连续递增。
-`EventBatch` 提供 `oldestAvailableSequence/latestSequence/nextSequence/missed` 供消费者
-检测事件环覆盖。`COMMAND_ENQUEUED` 表示入站已接受并在服务器 tick 取出；
-`COMMAND_ACCEPTED` 表示 Runtime 接受。
+`serverEpoch` identifies a server session; `sequence` starts at 1 and is
+contiguous. `EventBatch` exposes `oldestAvailableSequence`,
+`latestSequence`, `nextSequence` and `missed`.
 
-## 8. 错误码
+## 8. Error codes
 
 ```text
 INVALID_ARGUMENT
@@ -237,75 +198,50 @@ UNSUPPORTED_COMMAND
 EXECUTION_FAILED
 CANCELLED
 INTERRUPTED
+CONTRACT_VERSION_UNSUPPORTED
+TIMEOUT
 INTERNAL_ERROR
 ```
 
-## 9. 序列化规则
+## 9. Serialization
 
-本轮契约数据都是 record/enum/基本类型/UUID，按规范 JSON 映射：
+- use record component `camelCase` names;
+- UUID/resource IDs as strings;
+- `CommandSpec` uses a `type` discriminator with flat fields;
+- enums use `name()`;
+- unknown fields ignored; missing required fields rejected;
+- collection limits are enforced;
+- no wire codec is provided by this version.
 
-- 字段使用 record 组件的 `camelCase` 名；
-- UUID/资源标识符使用字符串；
-- `CommandSpec` 使用 `type` 判别字段，字段平铺；
-- 枚举使用 `name()` 字符串；
-- 未知字段忽略；缺失必填字段拒绝；
-- 未知命令类型/枚举拒绝；未知事件类型可映射 `UNKNOWN`；
-- 0.x 不承诺跨版本 wire compatibility。
+## 10. Packaging and runtime
 
-本轮不实现网络传输或完整 codec；后续 Adapter I/O 轮次负责实际编解码。
-
-## 10. 打包与运行验证
-
-主 Mod 通过：
+The main mod uses:
 
 ```kotlin
 implementation(project(":contract"))
 ```
 
-使用 `:contract`；根 `jar` 任务将 `:contract` 的 main classes 合并进最终 Mod JAR。
-
-构建后验证：
+The root `jar` task merges contract classes. Verify:
 
 ```text
 jar tf build/libs/swarmie-0.1.0.jar | findstr dev/swarmie/contract
 ```
 
-实际 JAR 包含 `dev/swarmie/contract/*.class`（20 个类 + 目录条目）。
-`SwarmieMod` 启动时读取 `ContractVersion.CURRENT` 并记录版本，用于验证运行时
-类加载。
+`SwarmieMod` reads `ContractVersion.CURRENT` at startup, proving runtime class
+loading.
 
-实际验证（2026-10-27）：
+Current release:
 
 ```text
-jar: build/libs/swarmie-0.1.0.jar
-size: 162,555 bytes
-sha256: fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a
-
-client log:
-  Swarmie initialized; registered entity type swarmie:swarmie
-  Adapter contract loaded: v0.1
+build/libs/swarmie-0.1.0.jar
+162,555 bytes
+SHA-256 fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a
 ```
 
-`runClient` exit 0；客户端到达 `Minecraft* 26.3` 后关闭。真实客户端世界内的
-行为测试仍以基线证据为准，见 `docs/testing.md` 与
-`docs/runtime-verification.md`。
+## 11. Not implemented
 
-## 11. 测试
-
-- `:contract` 自己的 JUnit 测试：参数边界、ack/result/event、版本；
-- 根 `test` 任务依赖 `:contract:test`；
-- 契约模块独立编译 classpath；
-- 不把 query/sensor/inventory/velocity 测试伪装成正式契约测试。
-
-详细测试记录见 [`testing.md`](testing.md)。
-
-## 12. 未实现
-
-- 机器人注册表、事件存储、serverEpoch（Prompt 2，已实现）；
-- 入站/出站通道、correlation 幂等、批量（Prompt 3，已实现）；
-- 正式命令规格（Prompt 4，见 `adapter-command-specs.md`）；
-- 网络传输、外部 Python 客户端（Prompt 3.5 已实现本地调试传输；不面向远程）；
-- 容器 GUI 能力（已知限制）。
-
-
-
+- registry/event store/serverEpoch: implemented in Prompt 2;
+- local I/O/idempotency/batch: implemented in Prompt 3;
+- command specs: implemented;
+- remote network transport: not implemented; localhost JSONL is debug-only;
+- GUI container support: not implemented.

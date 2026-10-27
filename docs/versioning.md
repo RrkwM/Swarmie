@@ -1,3 +1,5 @@
+English | [简体中文](versioning.zh-CN.md)
+
 # Versioning Policy
 
 Swarmie follows [Semantic Versioning 2.0.0](https://semver.org/).
@@ -77,3 +79,4 @@ Java 25
 
 Changing any of these is a compatibility event and must be documented even if
 the Swarmie API itself does not change.
+

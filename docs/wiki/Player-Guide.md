@@ -1,3 +1,5 @@
+English | [简体中文](Player-Guide-zh-CN)
+
 # Player Guide
 
 > Short Wiki mirror. The versioned full guide is
@@ -54,3 +56,4 @@ All `/swarmie` commands require OP/permission level 2.
 
 Full command reference, troubleshooting and lifecycle details:
 [Player Guide](https://github.com/RrkwM/Swarmie/blob/main/docs/player-guide.md).
+

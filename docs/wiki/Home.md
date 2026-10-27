@@ -1,3 +1,5 @@
+English | [简体中文](Home-zh-CN)
+
 # Swarmie
 
 Programmable hovering robots for **Minecraft 26.3 / Fabric**.
@@ -44,3 +46,4 @@ repository:
 - Dedicated-server, second-client, LOS, and some collision boundaries are
   unverified.
 - The Adapter contract is 0.x and may change.
+

@@ -1,3 +1,5 @@
+English | [简体中文](Developer-Guide-zh-CN)
+
 # Developer Guide
 
 > Short Wiki mirror. Canonical developer docs:
@@ -61,3 +63,4 @@ Read next:
 - [Command specs](https://github.com/RrkwM/Swarmie/blob/main/docs/adapter-command-specs.md)
 - [Versioning](https://github.com/RrkwM/Swarmie/blob/main/docs/versioning.md)
 - [Test matrix](https://github.com/RrkwM/Swarmie/blob/main/docs/test-matrix.md)
+

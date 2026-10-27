@@ -1,3 +1,5 @@
+English | [简体中文](FAQ-zh-CN)
+
 # FAQ / Troubleshooting
 
 ## The mod does not load
@@ -60,3 +62,4 @@ no authentication/TLS and is not a remote or multi-user service.
 
 0.1.0 is an admin/developer preview. Survival acquisition is not implemented
 yet; `/summon` is the current entry point.
+

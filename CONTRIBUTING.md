@@ -1,3 +1,5 @@
+[English](CONTRIBUTING.md) | [简体中文](CONTRIBUTING.zh-CN.md)
+
 # Contributing to Swarmie
 
 ## Before you start
@@ -71,3 +73,4 @@ For a quick client world, the maintainer-only property is:
 
 This project is licensed under the MIT License; see `LICENSE`. By contributing,
 you agree that your contribution is provided under the same MIT terms.
+

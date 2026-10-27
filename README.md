@@ -1,5 +1,7 @@
 # Swarmie
 
+English | [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/RrkwM/Swarmie/actions/workflows/ci.yml/badge.svg)](https://github.com/RrkwM/Swarmie/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/RrkwM/Swarmie)](https://github.com/RrkwM/Swarmie/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -130,6 +132,7 @@ Hard rules:
 |---|---|
 | Player install, commands, lifecycle, troubleshooting | [`docs/player-guide.md`](docs/player-guide.md) |
 | Developer setup, architecture, Adapter, testing | [`docs/developer-guide.md`](docs/developer-guide.md) |
+| Language policy / 中文文档 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) |
 | Contract fields, errors and serialization | [`docs/adapter-contract.md`](docs/adapter-contract.md) |
 | Registry, lifecycle, serverEpoch, event ring | [`docs/adapter-registry.md`](docs/adapter-registry.md) |
 | Inbound/outbound, idempotency, batch, cancel | [`docs/adapter-io.md`](docs/adapter-io.md) |
