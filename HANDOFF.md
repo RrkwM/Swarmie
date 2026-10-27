@@ -8,6 +8,7 @@
 <workspace>
 branch: main
 remote: https://github.com/RrkwM/Swarmie
+wiki: https://github.com/RrkwM/Swarmie/wiki
 CI: GitHub Actions `.github/workflows/ci.yml` (JDK 25 + Gradle test/build)
 license: MIT
 version: 0.1.0

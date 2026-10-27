@@ -4,6 +4,17 @@ All notable changes to Swarmie are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Documentation
+
+- Split the public README into a short landing page.
+- Added canonical [Player Guide](docs/player-guide.md) and
+  [Developer Guide](docs/developer-guide.md).
+- Published GitHub Wiki navigation, player/developer summaries, installation
+  and FAQ pages.
+- Anonymized maintainer-local absolute paths in the public tree.
+
 ## [0.1.0] - 2026-10-28
 
 First public release. This is a pre-1.0 release: the public Adapter contract
