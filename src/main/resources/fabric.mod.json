@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "swarmie",
+  "version": "${version}",
+  "name": "Swarmie",
+  "description": "Programmable hovering robots for Minecraft with a Minecraft-independent Adapter contract.",
+  "authors": [
+    "Swarmie"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.swarmie.SwarmieMod"
+    ],
+    "client": [
+      "dev.swarmie.client.SwarmieClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

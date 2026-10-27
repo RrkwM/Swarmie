@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "task": "P1-T1c-partial",
+  "capturedAt": "2026-10-27T04:03:13+08:00",
+  "projectRoot": ".",
+  "sourceCache": "tools/gradle-home/caches/fabric-loom",
+  "copyRoot": "tools/mc/loom-cache",
+  "fileCount": 6,
+  "files": [
+    {
+      "path": "tools/mc/loom-cache/.20e67722982c62a40196678589b1cd2a8780aad8.lock",
+      "sizeBytes": 8,
+      "sha256": "d8aed88c117edfde7603d4748a3ceb689638b7d32363710e75db2c9f46b2b381",
+      "category": ".20e67722982c62a40196678589b1cd2a8780aad8.lock"
+    },
+    {
+      "path": "tools/mc/loom-cache/mojang_versions_manifest.json",
+      "sizeBytes": 278138,
+      "sha256": "1e9f0052c6f385576f0effac072f2b32278346ce647d681e396dcf7b6f7d738a",
+      "category": "mojang_versions_manifest.json"
+    },
+    {
+      "path": "tools/mc/loom-cache/26.3/minecraft-client.jar",
+      "sizeBytes": 41483720,
+      "sha256": "4508d006323f24fa02876310c192d739af56516eb259000ac50f0909a68c9a2d",
+      "category": "26.3"
+    },
+    {
+      "path": "tools/mc/loom-cache/26.3/minecraft-extracted_server.jar",
+      "sizeBytes": 26652008,
+      "sha256": "a362163eec5d1612d520772bc16e5b39c09e3b234fdc045f56bf544284ee8ae6",
+      "category": "26.3"
+    },
+    {
+      "path": "tools/mc/loom-cache/26.3/minecraft-server.jar",
+      "sizeBytes": 62294556,
+      "sha256": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64",
+      "category": "26.3"
+    },
+    {
+      "path": "tools/mc/loom-cache/26.3/mojang_minecraft_info.json",
+      "sizeBytes": 44992,
+      "sha256": "d2cf8f0192f03a01bb48f2ff2d6dc1ba389ce9768499945417102202158c108f",
+      "category": "26.3"
+    }
+  ],
+  "notes": [
+    "Captured after the blocked Loom 1.19.3 attempt.",
+    "Processed jars are incomplete because Loom could not write them."
+  ]
+}

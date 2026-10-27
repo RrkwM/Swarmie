@@ -1,0 +1,2 @@
+307b274c3589f47834a2156d606ff18c38b82acd0b710c0738f83d1306e6c956  SPEC.phase0-brief.original.md
+d8c45cd4ab45cfed9fa2b95643921cdd181fbe0ec2504f32f7afa49fa211ac0b  PROGRESS.development-spec.original.md

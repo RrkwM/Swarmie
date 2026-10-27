@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "port": 25580,
+  "maxConnections": 4,
+  "maxLineBytes": 8192,
+  "maxOutboundEvents": 256
+}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "task": "P1-T1a",
+  "generatedAt": "2026-10-27T03:21:54+08:00",
+  "projectRoot": ".",
+  "host": {
+    "os": "Windows 11 Enterprise",
+    "arch": "x64"
+  },
+  "artifacts": [
+    {
+      "product": "Eclipse Temurin JDK",
+      "version": "25.0.4.1+1",
+      "releaseName": "jdk-25.0.4.1+1",
+      "packageName": "OpenJDK25U-jdk_x64_windows_hotspot_25.0.4.1_1.zip",
+      "os": "windows",
+      "arch": "x64",
+      "packageType": "zip",
+      "publisher": "Eclipse Adoptium",
+      "downloadUrl": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_windows_hotspot_25.0.4.1_1.zip",
+      "finalUrl": "https://release-assets.githubusercontent.com/github-production-release-asset/901810329/8879b457-aadf-4f5c-94b0-932ebf8e55e6",
+      "finalUrlQueryOmitted": true,
+      "finalUrlNote": "Query string omitted: it contains short-lived signed download parameters (not recorded as a secret).",
+      "sha256Published": "00c847d804f4a78e9f04f2683faf14fed898535b177b7fc704486cb0284e9283",
+      "sha256Calculated": "00c847d804f4a78e9f04f2683faf14fed898535b177b7fc704486cb0284e9283",
+      "sizeBytes": 141167264,
+      "archivePath": "tools/dist/OpenJDK25U-jdk_x64_windows_hotspot_25.0.4.1_1.zip",
+      "extractPath": "tools/jdk",
+      "verification": "verified",
+      "verifiedAt": "2026-10-27T03:21:54+08:00",
+      "integrityMetadataUrl": "https://api.adoptium.net/v3/assets/feature_releases/25/ga?architecture=x64&image_type=jdk&os=windows&vendor=eclipse&page=0&page_size=20"
+    },
+    {
+      "product": "Gradle",
+      "version": "9.8.2",
+      "os": "any",
+      "arch": "any",
+      "targetOs": "windows",
+      "targetArch": "x64",
+      "packageType": "zip",
+      "publisher": "Gradle, Inc.",
+      "downloadUrl": "https://services.gradle.org/distributions/gradle-9.8.2-bin.zip",
+      "finalUrl": "https://release-assets.githubusercontent.com/github-production-release-asset/696192900/7a5f9f6e-f7a6-425f-b43a-6a3d064419a9",
+      "finalUrlQueryOmitted": true,
+      "finalUrlNote": "services.gradle.org redirected to the official Gradle release asset; query string omitted (short-lived signed parameters).",
+      "sha256Published": "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607",
+      "sha256Calculated": "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607",
+      "sizeBytes": 151620138,
+      "archivePath": "tools/dist/gradle-9.8.2-bin.zip",
+      "extractPath": "tools/gradle-9.8.2",
+      "verification": "verified",
+      "verifiedAt": "2026-10-27T03:56:47+08:00",
+      "integrityMetadataUrl": "https://downloads.gradle.org/distributions/gradle-9.8.2-bin.zip.sha256"
+    }
+  ]
+}

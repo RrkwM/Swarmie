@@ -1,0 +1,28 @@
+# Build output
+build/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Project-local toolchain and generated dependency stores (never tracked)
+/tools/jdk/
+/tools/dist/
+/tools/gradle/
+/tools/gradle-9.8.2/
+/tools/gradle-home/
+/tools/repo/
+/tools/mc/
+/tools/logs/
+/tools/provision-tmp/
+
+# Temporary smoke project used to validate the wrapper
+/tools/smoke-wrapper-test/
+
+# Game run directories
+run/
+
+# Local test/runtime logs
+/logs/

@@ -1,0 +1,11 @@
+[versions]
+minecraft = "26.3"
+loader = "0.20.1"
+fabricApi = "0.165.0+26.3"
+loom = "1.19.3"
+java = "25"
+junit = "5.13.1"
+junitPlatform = "1.13.1"
+
+[plugins]
+loom = { id = "net.fabricmc.fabric-loom", version.ref = "loom" }
