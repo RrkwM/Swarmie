@@ -3,7 +3,8 @@ English | [简体中文](test-matrix.zh-CN.md)
 # Final Test Matrix — Adapter Refactor
 
 > Evidence classes:
-> **A** = automated JUnit; **C** = real Minecraft client; **S** = static/build;
+> **A** = automated JUnit; **P** = Python SDK unittest against a mock server;
+> **C** = real Minecraft client; **S** = static/build;
 > **U** = unverified; **L** = known limitation.
 
 ## 1. Automated and static
@@ -20,6 +21,7 @@ English | [简体中文](test-matrix.zh-CN.md)
 | Offline build | S | `--offline build` passed |
 | 0.1.0 release JAR | S | 162,555 bytes, SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | Spawn egg item/model/recipe/advancement/lang data | A | 3 data-contract tests passed |
+| Python SDK (mock server) | P | 44 passed |
 
 Test classes:
 
@@ -76,6 +78,8 @@ World: disposable `New World`, real integrated server.
 | Spawn egg given + creative search | C | `Gave 1 [Swarmie Spawn Egg]`; search `swarmie` returned the item |
 | Recipe unlock / auto-fill / craft | C | `Unlocked 1 recipe(s)`; recipe book filled the 3×3 grid; output crafted |
 | Right-click spawn | C | new `ROBOT_LOADED` `ff69dd53…`; inventory `empty` |
+| Python SDK discovery + explicit-UUID fly/stop/cancel | C | 15 robots; `SUCCEEDED`/`SUCCEEDED`/`CANCELLED`; reconnect `latest=63 missed=false` |
+| Python SDK mining smoke | C | `MINE FAILED EXECUTION_FAILED 'target is air'` at the chosen test coordinates; reported explicitly |
 | Event-ring live overflow | U | not filled to 1024; small-capacity JUnit |
 | Batch live submission | U | JUnit covers limits/per-item semantics; no live batch command |
 | Second-client sync | U | not tested |
@@ -84,7 +88,29 @@ World: disposable `New World`, real integrated server.
 | LOS sensor | L | unsupported |
 | High-speed/diagonal/stair/ceiling collision | U | baseline did not cover |
 
-## 3. Lifecycle details
+## 3. Python SDK (mock server)
+
+```powershell
+python -m unittest discover -s tools/sdk/tests -v
+```
+
+44 tests, no Minecraft process required.
+
+| Item | Evidence | Result |
+|---|---|---|
+| Command/ack/batch JSON encode and decode | P | passed |
+| Request/response correlation with interleaved pushes | P | passed |
+| Explicit UUID selection / unknown UUID | P | passed |
+| Ack versus terminal result | P | passed |
+| Wait timeout | P | passed |
+| Cancel accepted/already-terminal/unknown | P | passed |
+| Duplicate and rejected submissions | P | passed |
+| Connection close and server error | P | passed |
+| Same-epoch reconnect and epoch change | P | passed |
+| Event gap and per-robot isolation | P | passed |
+| Fresh-connection cursor baseline | P | passed |
+
+## 4. Lifecycle details
 
 - 4 robots loaded → 4 ROBOT_LOADED.
 - 4 × 1000-tick flight → 4 COMMAND_ACCEPTED + 4 COMMAND_STARTED.
@@ -96,7 +122,7 @@ World: disposable `New World`, real integrated server.
 - `/kill` → ROBOT_UNLOADED + ROBOT_REMOVED (KILLED).
 - Events contiguous; `missed=false`.
 
-## 4. Conclusion
+## 5. Conclusion
 
 Achieved:
 
@@ -110,10 +136,15 @@ Achieved:
 - spawn egg item, model, recipe, advancement and lang data (unit-checked);
 - real client: egg given and found in creative search; recipe unlocked and
   crafted from a 3×3 grid through the recipe book; right-click spawned a new
-  robot with an empty inventory.
+  robot with an empty inventory;
+- Python SDK (standard library) with explicit-UUID robots, command handles,
+  cancel, epoch/gap-aware reconnect and 44 mock-server tests;
+- real client: SDK discovery, explicit-UUID flight to terminal event, stop,
+  cancel and reconnect against the localhost transport.
 
 Not claimed:
 
 - remote/public connectivity, TLS, authentication or multi-user security;
 - GUI containers;
+- the Python SDK as a remote or authenticated API (it is a localhost dev tool);
 - second client, dedicated server, live ring overflow, all collision boundaries.

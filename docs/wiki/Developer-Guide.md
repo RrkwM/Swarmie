@@ -55,6 +55,16 @@ SubmitAck ack = SwarmieAdapter.submit(
 - Server tick owns entity/Runtime access; external threads only enqueue.
 - Event listeners must be fast and non-blocking.
 
+## Python SDK
+
+- `tools/sdk/swarmie` — synchronous, standard-library client over the local
+  JSONL transport;
+- explicit UUID selection, `CommandHandle.wait()`, cancel and epoch/gap-aware
+  reconnect;
+- examples in `tools/sdk/examples`, tests in `tools/sdk/tests`;
+- full guide:
+  https://github.com/RrkwM/Swarmie/blob/main/docs/python-sdk.md
+
 Read next:
 
 - [Contract](https://github.com/RrkwM/Swarmie/blob/main/docs/adapter-contract.md)

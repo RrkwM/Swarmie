@@ -67,23 +67,25 @@
 {"type":"events","batch":{...}}
 ```
 
-## 4. Python 客户端
+## 4. Python
 
-```text
-python tools/client/swarmie_client.py \
-  --host 127.0.0.1 --port 25580 \
-  --duration 20 --mine-x 501 --mine-y 99 --mine-z 500
+第一种官方客户端库是 `tools/sdk/swarmie` 下的 Python SDK，见
+[`python-sdk.md`](python-sdk.zh-CN.md)。它封装发现、精确 UUID 选择、
+提交/等待/取消以及 epoch/遗漏处理，仍然只依赖标准库且为同步 API。
+
+```powershell
+python tools/sdk/examples/01_list_robots.py
+python tools/sdk/examples/02_fly_and_stop.py --robot <uuid>
 ```
 
-脚本无第三方依赖，执行：
+端到端传输 smoke test 仍在：
 
-1. `robots` 查询可用机器人；
-2. mine 先执行（保证近距离）；
-3. fly 20 ticks → 等待 `COMMAND_COMPLETED`；
-4. stop → 等待终态；
-5. 重复 stop correlation → `DUPLICATE`；
-6. long flight → `cancel` → `COMMAND_CANCELLED`；
-7. 关闭并用新连接拉取 `events`，报告 epoch/latest/missed。
+```powershell
+python tools/client/swarmie_client.py --robot <uuid>
+```
+
+它依次查询机器人、挖掘、飞行并等待、停止、重复 stop correlation、启动长飞行
+并取消，最后重连并报告 epoch/latest/missed。
 
 ## 5. 实机结果（2026-10-28）
 

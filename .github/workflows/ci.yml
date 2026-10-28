@@ -34,3 +34,6 @@ jobs:
 
       - name: Test and build
         run: ./gradlew --no-daemon test build
+
+      - name: Python SDK tests
+        run: python3 -m unittest discover -s tools/sdk/tests -v

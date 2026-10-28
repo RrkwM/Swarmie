@@ -56,22 +56,27 @@ Commands:
 Responses: `hello`, `robots`, `events`, `ack`, `cancel_ack`, `error`, `pong`.
 Events are also pushed at END tick.
 
-## 4. Python client
+## 4. Python
 
-```bash
-python tools/client/swarmie_client.py \
-  --host 127.0.0.1 --port 25580 \
-  --duration 20 --mine-x 501 --mine-y 99 --mine-z 500
+The first official client library is the Python SDK in `tools/sdk/swarmie`,
+documented in [`python-sdk.md`](python-sdk.md). It wraps discovery, explicit
+UUID selection, submit/wait/cancel and epoch/gap handling; it remains
+standard-library-only and synchronous.
+
+```powershell
+python tools/sdk/examples/01_list_robots.py
+python tools/sdk/examples/02_fly_and_stop.py --robot <uuid>
 ```
 
-No third-party dependencies. The script:
+The end-to-end transport smoke test remains:
 
-1. queries robots;
-2. mines (before moving out of range);
-3. flies 20 ticks and waits for completion;
-4. stops, then duplicates the stop correlation;
-5. starts a long flight and cancels it;
-6. reconnects and reports epoch/latest/missed.
+```powershell
+python tools/client/swarmie_client.py --robot <uuid>
+```
+
+It queries robots, mines, flies and waits, stops, duplicates the stop
+correlation, starts a long flight and cancels it, then reconnects and reports
+epoch/latest/missed.
 
 ## 5. Live result
 

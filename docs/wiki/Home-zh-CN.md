@@ -14,13 +14,15 @@
 - [玩家指南](Player-Guide-zh-CN) — 安装与当前管理员预览
 - [安装](Installation-zh-CN) — Fabric、Java 25 与 Release JAR
 - [开发者指南](Developer-Guide-zh-CN) — 构建、架构与 Adapter
+- [Python SDK](https://github.com/RrkwM/Swarmie/blob/main/docs/python-sdk.zh-CN.md)
+  — local JSONL 传输的类型化客户端
 - [FAQ](FAQ-zh-CN) — 常见故障和限制
 
 ## 当前范围
 
 Swarmie 提供真实 Minecraft `Entity`、服务端权威飞行、9 槽库存、原生交互、
-每机器人 Runtime 命令、世界查询、本地传感器，以及独立于 Minecraft 的
-Adapter 契约。
+每机器人 Runtime 命令、世界查询、本地传感器、独立于 Minecraft 的 Adapter 契约，
+以及面向可选 localhost 传输的仅标准库 Python SDK。
 
 0.1.0 没有机器人合成物品；`main` 为未发布的 0.1.1 新增可合成刷怪蛋。0.1.0 是
 管理员/开发者预览，使用 `/summon swarmie:swarmie` 创建机器人。刷怪蛋只会创建
@@ -35,12 +37,13 @@ Wiki 只是简短导航/镜像。版本化 canonical 文档在仓库：
 - https://github.com/RrkwM/Swarmie/blob/main/README.zh-CN.md
 - https://github.com/RrkwM/Swarmie/blob/main/docs/player-guide.zh-CN.md
 - https://github.com/RrkwM/Swarmie/blob/main/docs/developer-guide.zh-CN.md
+- https://github.com/RrkwM/Swarmie/blob/main/docs/python-sdk.zh-CN.md
 - https://github.com/RrkwM/Swarmie/blob/main/CHANGELOG.zh-CN.md
 
 ## 已知限制
 
 - FakePlayer 路径不支持 GUI 容器；
 - 挖掘掉落留在地上，不会自动收集；
-- localhost JSONL 仅开发者调试、默认关闭；
+- localhost JSONL 仅开发者调试、默认关闭；Python SDK 无认证/TLS，不是远程 API；
 - 专用服务器、第二客户端、LOS 和部分碰撞边界未验证；
 - Adapter 契约为 0.x，可能变化。

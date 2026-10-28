@@ -53,6 +53,14 @@ SubmitAck ack = SwarmieAdapter.submit(
 - 服务器 tick 拥有实体/Runtime 访问权；外部线程只入队；
 - 事件监听器必须快速、非阻塞。
 
+## Python SDK
+
+- `tools/sdk/swarmie` — 基于 local JSONL 传输的同步、仅标准库客户端；
+- 精确 UUID 选择、`CommandHandle.wait()`、取消，以及感知 epoch/遗漏的重连；
+- 示例在 `tools/sdk/examples`，测试在 `tools/sdk/tests`；
+- 完整文档：
+  https://github.com/RrkwM/Swarmie/blob/main/docs/python-sdk.zh-CN.md
+
 继续阅读：
 
 - [契约](https://github.com/RrkwM/Swarmie/blob/main/docs/adapter-contract.zh-CN.md)

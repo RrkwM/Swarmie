@@ -18,6 +18,7 @@ its normal path. Simplified Chinese is available with a `.zh-CN.md` suffix (and
 | [`adapter-io.md`](adapter-io.md) | [`adapter-io.zh-CN.md`](adapter-io.zh-CN.md) |
 | [`adapter-command-specs.md`](adapter-command-specs.md) | [`adapter-command-specs.zh-CN.md`](adapter-command-specs.zh-CN.md) |
 | [`local-transport.md`](local-transport.md) | [`local-transport.zh-CN.md`](local-transport.zh-CN.md) |
+| [`python-sdk.md`](python-sdk.md) | [`python-sdk.zh-CN.md`](python-sdk.zh-CN.md) |
 | [`test-matrix.md`](test-matrix.md) | [`test-matrix.zh-CN.md`](test-matrix.zh-CN.md) |
 | [`versioning.md`](versioning.md) | [`versioning.zh-CN.md`](versioning.zh-CN.md) |
 | [`CHANGELOG.md`](../CHANGELOG.md) | [`CHANGELOG.zh-CN.md`](../CHANGELOG.zh-CN.md) |
