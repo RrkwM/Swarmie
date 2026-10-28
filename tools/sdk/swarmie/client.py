@@ -7,6 +7,7 @@ robot. All asynchronous command state is carried by :class:`CommandHandle`.
 from __future__ import annotations
 
 import itertools
+import math
 import os
 import time
 from collections import deque
@@ -22,8 +23,10 @@ from .errors import (
     ProtocolError,
     RequestTimeout,
     RobotNotFound,
+    RobotNotLoaded,
     ServerError,
     SessionChangedError,
+    SetpointRejected,
     WaitTimeout,
 )
 from .models import (
@@ -36,7 +39,10 @@ from .models import (
     Gap,
     RobotInfo,
     RobotLifecycle,
+    RobotState,
     SessionInfo,
+    SetpointAck,
+    Vec3,
     normalize_robot_id,
     validate_correlation,
 )
@@ -188,6 +194,69 @@ class SwarmieClient:
             if info.robot_id == wanted:
                 return Robot(self, info)
         raise RobotNotFound(wanted)
+
+    def state(self, robot_id: str, timeout: Optional[float] = None) -> RobotState:
+        """Read a server-authoritative live snapshot for one exact UUID."""
+        rid = normalize_robot_id(robot_id)
+        try:
+            response = self._request(
+                {"op": "state", "robot": rid},
+                "state",
+                timeout,
+            )
+        except ServerError as exc:
+            if exc.code == "ROBOT_NOT_FOUND":
+                raise RobotNotFound(rid) from exc
+            if exc.code in {"ROBOT_NOT_LOADED", "ROBOT_REMOVED", "ROBOT_UNAVAILABLE"}:
+                raise RobotNotLoaded(rid, exc.code) from exc
+            raise
+        return protocol.parse_state(response.get("state"))
+
+    def set_velocity(
+        self,
+        robot_id: str,
+        velocity: Vec3,
+        timeout: Optional[float] = None,
+    ) -> SetpointAck:
+        """Accept or replace the persistent velocity target (not an action)."""
+        rid = normalize_robot_id(robot_id)
+        if not isinstance(velocity, Vec3):
+            raise ValueError("velocity must be a Vec3")
+        for axis in (velocity.x, velocity.y, velocity.z):
+            if not math.isfinite(float(axis)):
+                raise ValueError("velocity components must be finite")
+        return self._setpoint(rid, {"value": velocity.to_wire()}, timeout)
+
+    def clear_velocity(
+        self,
+        robot_id: str,
+        timeout: Optional[float] = None,
+    ) -> SetpointAck:
+        """Release the velocity target; this is not a queued Stop action."""
+        rid = normalize_robot_id(robot_id)
+        return self._setpoint(rid, {"clear": True}, timeout)
+
+    def _setpoint(
+        self,
+        robot_id: str,
+        payload: Dict[str, Any],
+        timeout: Optional[float],
+    ) -> SetpointAck:
+        request: Dict[str, Any] = {
+            "op": "setpoint",
+            "robot": robot_id,
+            "channel": "velocity",
+        }
+        request.update(payload)
+        response = self._request(request, "setpoint_ack", timeout)
+        ack = protocol.parse_setpoint_ack(response.get("ack"))
+        if not ack.accepted:
+            if ack.error == "ROBOT_NOT_FOUND":
+                raise RobotNotFound(robot_id)
+            if ack.error in {"ROBOT_NOT_LOADED", "ROBOT_REMOVED", "ROBOT_UNAVAILABLE"}:
+                raise RobotNotLoaded(robot_id, ack.error or "ROBOT_NOT_LOADED")
+            raise SetpointRejected(ack)
+        return ack
 
     # ------------------------------------------------------------------
     # Commands
@@ -425,6 +494,18 @@ class Robot:
 
     def status(self) -> RobotInfo:
         return self.refresh()
+
+    def state(self, timeout: Optional[float] = None) -> RobotState:
+        """Return live state, distinct from the registry metadata in ``info``."""
+        return self._client.state(self.robot_id, timeout=timeout)
+
+    def set_velocity(self, velocity: Vec3, timeout: Optional[float] = None) -> SetpointAck:
+        """Set or replace the persistent velocity target."""
+        return self._client.set_velocity(self.robot_id, velocity, timeout=timeout)
+
+    def clear_velocity(self, timeout: Optional[float] = None) -> SetpointAck:
+        """Clear the persistent velocity target."""
+        return self._client.clear_velocity(self.robot_id, timeout=timeout)
 
     def submit(self, command: Any, correlation: Optional[str] = None) -> "CommandHandle":
         return self._client.submit(self.robot_id, command, correlation)

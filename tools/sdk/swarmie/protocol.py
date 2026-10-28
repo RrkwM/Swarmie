@@ -21,6 +21,8 @@ from .models import (
     RobotEvent,
     RobotInfo,
     RobotLifecycle,
+    RobotState,
+    SetpointAck,
     Vec3,
     normalize_robot_id,
     parse_enum,
@@ -65,6 +67,13 @@ def _boolean(obj: Dict[str, Any], key: str, what: str) -> bool:
     return value
 
 
+def _number(obj: Dict[str, Any], key: str, what: str) -> float:
+    value = obj.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ProtocolError(f"{what}.{key} must be a number")
+    return float(value)
+
+
 def _array(obj: Dict[str, Any], key: str, what: str) -> List[Any]:
     value = obj.get(key)
     if not isinstance(value, list):
@@ -102,6 +111,48 @@ def parse_robot_info(payload: Any) -> RobotInfo:
         position=position,
         supported_commands=tuple(commands),
         last_updated_tick=tick,
+        raw=obj,
+    )
+
+
+def parse_state(payload: Any) -> RobotState:
+    obj = _object(payload, "state")
+    lifecycle = parse_enum(RobotLifecycle, obj.get("lifecycle"), RobotLifecycle.UNKNOWN)
+    return RobotState(
+        robot_id=normalize_robot_id(_string(obj, "robotId", "state")),
+        server_epoch=_integer(obj, "serverEpoch", "state"),
+        server_tick=_integer(obj, "serverTick", "state"),
+        dimension=_string(obj, "dimensionId", "state"),
+        position=parse_vec3(obj.get("position"), "state.position"),
+        velocity=parse_vec3(obj.get("velocity"), "state.velocity"),
+        yaw=_number(obj, "yaw", "state"),
+        pitch=_number(obj, "pitch", "state"),
+        lifecycle=lifecycle,
+        raw=obj,
+    )
+
+
+def parse_setpoint_ack(payload: Any) -> SetpointAck:
+    obj = _object(payload, "ack")
+    effective = None
+    if obj.get("effectiveVelocity") is not None:
+        effective = parse_vec3(obj["effectiveVelocity"], "ack.effectiveVelocity")
+    accepted = _boolean(obj, "accepted", "ack")
+    active = _boolean(obj, "active", "ack")
+    if accepted and active and effective is None:
+        raise ProtocolError("ack.effectiveVelocity is required for an active setpoint")
+    return SetpointAck(
+        robot_id=normalize_robot_id(_string(obj, "robotId", "ack")),
+        channel=_string(obj, "channel", "ack"),
+        revision=_integer(obj, "revision", "ack"),
+        active=active,
+        accepted=accepted,
+        effective_velocity=effective,
+        clamped=_boolean(obj, "clamped", "ack"),
+        server_epoch=_integer(obj, "serverEpoch", "ack"),
+        server_tick=_integer(obj, "serverTick", "ack"),
+        error=_optional_string(obj, "error"),
+        message=_optional_string(obj, "message") or "",
         raw=obj,
     )
 

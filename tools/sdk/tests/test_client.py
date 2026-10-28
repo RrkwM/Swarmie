@@ -18,13 +18,16 @@ from swarmie import (  # noqa: E402
     EventGapError,
     ProtocolError,
     RobotNotFound,
+    RobotNotLoaded,
     ServerError,
     SessionChangedError,
+    SetpointRejected,
     Stop,
     SwarmieClient,
+    Vec3,
     WaitTimeout,
 )
-from mock_server import MockSwarmieServer, make_event, make_robot  # noqa: E402
+from mock_server import MockSwarmieServer, make_event, make_robot, make_state  # noqa: E402
 
 ROBOT_A = "11111111-1111-4111-8111-111111111111"
 ROBOT_B = "22222222-2222-4222-8222-222222222222"
@@ -79,6 +82,110 @@ class ClientTestCase(unittest.TestCase):
         by_id = {robot.robot_id: robot for robot in robots}
         self.assertEqual(by_id[ROBOT_B].dimension, "minecraft:the_nether")
         self.assertIn("STOP", by_id[ROBOT_A].supported_commands)
+
+    # ------------------------------------------------------------------
+    # Live self-state and velocity setpoints
+    # ------------------------------------------------------------------
+    def test_state_reads_exact_uuid_snapshot(self):
+        self.server.state_handler = lambda request: make_state(
+            ROBOT_A,
+            epoch=4242,
+            tick=55,
+            dimension="minecraft:overworld",
+            x=1.5,
+            y=64.0,
+            z=-2.5,
+            vx=0.1,
+            vy=-0.2,
+            yaw=90.0,
+            pitch=12.0,
+        )
+        state = self.client.robot(ROBOT_A).state()
+        self.assertEqual(state.robot_id, ROBOT_A)
+        self.assertEqual(state.server_tick, 55)
+        self.assertEqual(state.position.x, 1.5)
+        self.assertEqual(state.velocity.y, -0.2)
+        self.assertEqual(state.yaw, 90.0)
+        self.assertEqual(state.lifecycle.value, "LOADED")
+        request = [r for r in self.server.requests if r.get("op") == "state"][-1]
+        self.assertEqual(request["robot"], ROBOT_A)
+
+    def test_state_does_not_replace_registry_metadata(self):
+        robot = self.client.robot(ROBOT_A)
+        before = robot.info.last_updated_tick
+        self.server.state_handler = lambda request: make_state(ROBOT_A, tick=500)
+        state = robot.state()
+        self.assertEqual(state.server_tick, 500)
+        self.assertEqual(robot.info.last_updated_tick, before)
+
+    def test_state_unknown_robot_is_not_empty_state(self):
+        with self.assertRaises(RobotNotFound):
+            self.client.state("00000000-0000-4000-8000-000000000000")
+
+    def test_state_unloaded_robot_is_explicit(self):
+        self.server.error_for_op = {
+            "op": "state",
+            "code": "ROBOT_NOT_LOADED",
+            "message": "robot is not loaded",
+        }
+        with self.assertRaises(RobotNotLoaded) as caught:
+            self.client.robot(ROBOT_A).state()
+        self.assertEqual(caught.exception.code, "ROBOT_NOT_LOADED")
+
+    def test_set_velocity_and_clear_use_setpoint_operation(self):
+        robot = self.client.robot(ROBOT_A)
+        ack = robot.set_velocity(Vec3(0.1, 0.0, -0.2))
+        self.assertTrue(ack.accepted)
+        self.assertTrue(ack.active)
+        self.assertEqual(ack.channel, "velocity")
+        self.assertEqual(ack.effective_velocity.z, -0.2)
+        request = [r for r in self.server.requests if r.get("op") == "setpoint"][-1]
+        self.assertEqual(request["value"], {"x": 0.1, "y": 0.0, "z": -0.2})
+
+        cleared = robot.clear_velocity()
+        self.assertTrue(cleared.accepted)
+        self.assertFalse(cleared.active)
+        self.assertIsNone(cleared.effective_velocity)
+        request = [r for r in self.server.requests if r.get("op") == "setpoint"][-1]
+        self.assertTrue(request["clear"])
+
+        with self.assertRaises(ValueError):
+            robot.set_velocity(Vec3(float("nan"), 0.0, 0.0))
+
+    def test_rejected_setpoint_is_not_reported_as_accepted(self):
+        self.server.setpoint_handler = lambda request: {
+            "robotId": request["robot"],
+            "channel": "velocity",
+            "revision": 4,
+            "active": False,
+            "accepted": False,
+            "clamped": False,
+            "serverEpoch": 4242,
+            "serverTick": 9,
+            "error": "MOTION_CHANNEL_BUSY",
+            "message": "legacy motion owns the channel",
+        }
+        with self.assertRaises(SetpointRejected) as caught:
+            self.client.robot(ROBOT_A).set_velocity(Vec3(0.1, 0.0, 0.0))
+        self.assertEqual(caught.exception.ack.error, "MOTION_CHANNEL_BUSY")
+        self.assertFalse(caught.exception.ack.accepted)
+
+    def test_setpoint_unloaded_robot_is_explicit(self):
+        self.server.setpoint_handler = lambda request: {
+            "robotId": request["robot"],
+            "channel": "velocity",
+            "revision": 0,
+            "active": False,
+            "accepted": False,
+            "clamped": False,
+            "serverEpoch": 4242,
+            "serverTick": 9,
+            "error": "ROBOT_NOT_LOADED",
+            "message": "robot is not loaded",
+        }
+        with self.assertRaises(RobotNotLoaded) as caught:
+            self.client.robot(ROBOT_A).set_velocity(Vec3(0.1, 0.0, 0.0))
+        self.assertEqual(caught.exception.code, "ROBOT_NOT_LOADED")
 
     # ------------------------------------------------------------------
     # Acknowledge versus result

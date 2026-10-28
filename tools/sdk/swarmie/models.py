@@ -113,6 +113,49 @@ class RobotInfo:
 
 
 @dataclass(frozen=True)
+class RobotState:
+    """Server-authoritative live self-state snapshot.
+
+    ``server_tick`` is the freshness indicator for the whole snapshot; it is
+    not derived from the client clock. Registry metadata in :class:`RobotInfo`
+    is not a substitute for this snapshot.
+    """
+
+    robot_id: str
+    server_epoch: int
+    server_tick: int
+    dimension: str
+    position: Vec3
+    velocity: Vec3
+    yaw: float
+    pitch: float
+    lifecycle: RobotLifecycle
+    raw: Dict[str, Any] = field(default_factory=dict, compare=False, repr=False)
+
+
+@dataclass(frozen=True)
+class SetpointAck:
+    """Acknowledgement of a velocity-setpoint request.
+
+    Acceptance means the server accepted the target; it does not mean the
+    actual velocity has reached it.
+    """
+
+    robot_id: str
+    channel: str
+    revision: int
+    active: bool
+    accepted: bool
+    effective_velocity: Optional[Vec3]
+    clamped: bool
+    server_epoch: int
+    server_tick: int
+    error: Optional[str]
+    message: str
+    raw: Dict[str, Any] = field(default_factory=dict, compare=False, repr=False)
+
+
+@dataclass(frozen=True)
 class Ack:
     """SubmitAck: acceptance is not completion."""
 

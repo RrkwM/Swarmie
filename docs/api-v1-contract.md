@@ -6,6 +6,15 @@
 > Branch: `design/api-v1-contract`. Parent: `ca121f2`.
 > Current implementation is pre-stable contract `0.1`; v1 is a design target,
 > not a claim that v1 already exists.
+>
+> **Implemented slice (2026-10-29):** `State.self` and the persistent velocity
+> setpoint are implemented through the local JSONL transport and Python SDK.
+> Inventory, block/region/entity/sensor observations, orientation setpoints,
+> hover and all other action candidates remain unimplemented. Capability
+> discovery is not implemented in this slice: `state` and velocity setpoints are
+> available for loaded robots, and clients must not interpret the absence of a
+> capability object as proof of unsupported behavior yet. Verification is
+> unit/mock based; no in-game flight was performed for this slice.
 
 ## 0. How to read this document
 
@@ -444,7 +453,7 @@ class SetpointAck:
     revision: int
     active: bool                 # True for set, False for clear
     accepted: bool
-    effective: Optional[Vec3]    # velocity only; None for orientation/clear
+    effective_velocity: Optional[Vec3]    # velocity only; None for orientation/clear
     clamped: bool
     server_epoch: int
     server_tick: int
@@ -476,11 +485,11 @@ A setpoint is **not an action**:
 - it remains in effect across ticks until replaced, cleared, or invalidated by
   robot lifecycle.
 
-`set_velocity` MUST reject non-finite values. The v1 **proposal** is to clamp a
-velocity longer than `CapabilityLimits.max_speed` on the server, set
-`clamped=true`, and report the clamped vector in `effective`; the alternative is
-to reject it. This clamping behavior is an open decision (§13 item 2), not a
-current implementation claim.
+`set_velocity` MUST reject non-finite values. The implementation clamps a
+velocity longer than `ContractLimits.MAX_SETPOINT_SPEED` (`0.35` blocks/tick)
+on the server, sets `clamped=true`, and reports the clamped vector in
+`effective_velocity`. The pre-implementation open choice between clamping and rejection
+is resolved in favor of clamping; the ack contract is frozen accordingly.
 
 `set_orientation` MUST reject non-finite values, yaw outside `[-180, 180]`, or
 pitch outside `[-90, 90]`. It does not promise a rotation rate; a future
@@ -529,6 +538,25 @@ NOT assume `TIMED_FLIGHT` is non-blocking or persistent.
 threshold. The v1 setpoint equivalent is `clear_velocity()` (or an explicit
 zero target); it is not queued and does not wait for a terminal event. The
 implementation MUST NOT route setpoint requests through the action FIFO.
+
+### Motion-channel compatibility (implemented)
+
+The public motion channel has one owner at a time:
+
+- while a velocity setpoint is active, submitting `TIMED_FLIGHT` or `STOP` is
+  rejected with `MOTION_CHANNEL_BUSY`; clear the setpoint first;
+- while a `TIMED_FLIGHT`/`STOP` command is active or queued, a velocity
+  setpoint request (including clear) is rejected with `MOTION_CHANNEL_BUSY`;
+  wait for the legacy motion command to reach terminal state;
+- `MINE_BLOCK`/`USE_ITEM_ON_BLOCK` are hand actions and are unaffected;
+- clearing a setpoint releases the channel only when the setpoint owns it; a
+  clear while legacy motion owns the channel is rejected, not applied.
+
+Existing examples that use only `TIMED_FLIGHT`/`STOP` remain compatible. The
+low-level debug commands `swarmie velocity` and `swarmie stop` bypass the
+Adapter arbitration; they are not public API and must not be used alongside a
+setpoint. The setpoint target is re-applied each server tick, so a debug
+velocity does not become a second persistent source.
 
 `TIMED_FLIGHT` and `STOP` remain in `RobotInfo.supported_commands` for
 compatibility, but they are not entries in the v1 action catalogue and are not
@@ -807,10 +835,9 @@ lifecycle invalidation is explained by `ROBOT_UNLOADED`/`ROBOT_REMOVED`/
 An action failure MUST NOT be raised as a request rejection; a wait timeout MUST
 NOT be reported as an action failure.
 
-`RobotNotLoaded` is a proposed typed convenience for the existing
-`ROBOT_NOT_LOADED` condition. The current SDK exposes that condition through
-`CommandRejected`/ack codes for command submission, not through a dedicated
-state API (which does not exist yet).
+`RobotNotLoaded` is now implemented for the live-state path. Command submission
+still exposes the same condition through `CommandRejected`/ack codes, because
+the existing action API predates the typed state exception.
 
 ### 9.2 Error-code mapping
 
@@ -823,6 +850,7 @@ state API (which does not exist yet).
 | Target unreachable/out of range | action `FAILED` with `EXECUTION_FAILED` + message; `TARGET_UNREACHABLE` is PROPOSED | PARTIAL: message only |
 | Precondition failed | action `FAILED` (message/EXECUTION_FAILED) | PARTIAL |
 | Capability unsupported | `UNSUPPORTED_CAPABILITY` (PROPOSED) or `UNSUPPORTED_COMMAND` for legacy commands | PARTIAL |
+| Motion channel owned by another source | `MOTION_CHANNEL_BUSY` | SUPPORTED for velocity-vs-legacy arbitration |
 | Resource conflict | `RESOURCE_CONFLICT` (PROPOSED; not observable in FIFO v1) | MISSING |
 | Request rejected | `ActionAck.accepted=false` + `RequestRejected` | SUPPORTED |
 | Cancel correlation unknown | `CancelUnknown` / `CancelAck.UNKNOWN` | SUPPORTED |
@@ -834,58 +862,70 @@ The minimum exception hierarchy is `SwarmieError` plus the existing concrete
 types; v1 MUST NOT create one exception per Minecraft failure. New codes are
 wire strings and may be added without a new exception class.
 
-## 10. Proposed transport shape (not implemented)
+## 10. Transport shape (implemented subset and future proposal)
 
 The existing JSONL ops remain: `robots`, `events`, `submit`, `cancel`, `ping`.
-v1 needs two additions; both are local development protocol, not a remote API.
+The first slice adds two implemented ops, `state` and `setpoint`; they are local
+development protocol, not a remote API.
+
+Implemented state request/response:
 
 ```json
-{"op":"observe","id":"7","robot":"<uuid>",
- "query":{"kind":"block","position":{"x":10,"y":64,"z":-3}}}
+{"op":"state","id":"5","robot":"<uuid>"}
 ```
+
+```json
+{"type":"state","id":"5","state":{
+  "robotId":"<uuid>","serverEpoch":123,"serverTick":456,
+  "dimensionId":"minecraft:overworld","position":{...},"velocity":{...},
+  "yaw":90.0,"pitch":0.0,"lifecycle":"LOADED"}}
+```
+
+Implemented setpoint requests and ack:
 
 ```json
 {"op":"setpoint","id":"8","robot":"<uuid>",
  "channel":"velocity","value":{"x":0.1,"y":0,"z":0}}
 ```
 
-Proposed responses:
-
 ```json
-{"type":"observation","id":"7","serverEpoch":123,"serverTick":456,
- "observation":{"kind":"block","status":"OK","block":{...}}}
+{"op":"setpoint","id":"9","robot":"<uuid>",
+ "channel":"velocity","clear":true}
 ```
 
 ```json
 {"type":"setpoint_ack","id":"8",
- "ack":{"channel":"velocity","revision":3,"active":true,"accepted":true,
-        "effective":{"x":0.1,"y":0,"z":0},"clamped":false,
-        "serverEpoch":123,"serverTick":456,"error":null,"message":""}}
+ "ack":{"robotId":"<uuid>","channel":"velocity","revision":3,"active":true,
+        "accepted":true,"effectiveVelocity":{"x":0.1,"y":0,"z":0},
+        "clamped":false,"serverEpoch":123,"serverTick":456,"message":""}}
 ```
 
-- `observe.query.kind` is one of `self`, `inventory`, `block`, `region`,
-  `entities`, `sensor`.
+Implemented behavior:
+
+- `state` returns only robot self-state; unknown/unloaded/removed robots return
+  `ROBOT_NOT_FOUND`/`ROBOT_NOT_LOADED`/`ROBOT_REMOVED`, and an unavailable
+  snapshot returns `ROBOT_UNAVAILABLE`;
+- `state` is a snapshot with `serverEpoch`/`serverTick` freshness; it is not a
+  registry descriptor;
+- `setpoint` accepts `value` for set and `clear:true` for clear; a rejected
+  request carries an error and does not change the target/revision;
+- setpoint acceptance is synchronous; no per-update event is emitted;
+- the motion channel is exclusive with legacy `TIMED_FLIGHT`/`STOP`; the loser
+  gets `MOTION_CHANNEL_BUSY`;
+- velocity is clamped at `0.35` blocks/tick with `clamped=true`.
+
+Future (not implemented): a general `observe` operation with `kind` values
+`inventory`, `block`, `region`, `entities`, `sensor` (and possibly `self` as an
+alias). Its proposed fields are `inventory` none, `block` `position`, `region`
+`from`/`to`, `entities` box/type/exclude-self, and `sensor`
+range/FOV/results/line-of-sight. Those are not part of this slice and must not
+be advertised as available.
+
 - The `robots` response descriptor MUST carry the v1 `capabilities` object (and
   retain `supportedCommands` for compatibility). A client must not infer
   state/setpoint support from `supportedCommands` alone.
-- Minimal query fields:
-
-  | kind | fields |
-  |---|---|
-  | `self` | none |
-  | `inventory` | none |
-  | `block` | `position` |
-  | `region` | `from`, `to` |
-  | `entities` | `box` (`min`,`max`), `typeId?`, `excludeSelf?` (default true) |
-  | `sensor` | `range?`, `fovDegrees?`, `maxResults?`, `lineOfSight?` (default false) |
-
 - One request produces one response; no per-observation event.
 - Queries execute on the server thread and include `serverEpoch`/`serverTick`.
-- World-boundary failures are returned as `observation.status`, not as a
-  protocol error; malformed requests are protocol errors.
-- `setpoint` accepts `value` for set and `clear:true` for clear. Invalid values
-  are rejected in `setpoint_ack`; velocity length handling is the proposed
-  clamp-or-reject decision in §13 item 2, not a hidden behavior.
 - No batching, streaming subscription, authentication, TLS or remote binding is
   designed here.
 
@@ -986,18 +1026,18 @@ Status meanings:
 |---|---|---|
 | Stable UUID and exact-ID lookup | **SUPPORTED** | `RobotId` is a UUID; SDK `client.robot()` matches exact UUID and raises `RobotNotFound` (`tools/sdk/swarmie/client.py:172-190`); `test_exact_robot_selection_never_defaults_to_first` (`tools/sdk/tests/test_client.py:69`). |
 | Robot lifecycle and dimension metadata | **SUPPORTED** | `RobotDescriptor` has lifecycle/dimension/lastUpdatedTick (`contract/src/main/java/dev/swarmie/contract/RobotDescriptor.java:6-12`); registry load/unload/remove (`src/main/java/dev/swarmie/adapter/registry/RobotRegistry.java`); lifecycle tests in `RobotRegistryTest.java` and SDK `test_robot_info_is_structured`. |
-| Robot live position/velocity/orientation | **PARTIAL** | Registry position is refreshed at END tick (`AdapterSession.java:135-150`), but there is no public state query, and no velocity/yaw/pitch in `RobotDescriptor`. `SwarmieEntity.getVelocity()` exists (`SwarmieEntity.java:159-162`) but is not exposed. |
+| Robot live position/velocity/orientation | **SUPPORTED** for `state.self` | Public JSONL `state` op + SDK `Robot.state()`; server snapshot at end tick (`AdapterSession.onEndTick`); orientation is read-only. Unit/mock tested, not in-game verified. |
 | Capability discovery and version | **PARTIAL** | `RobotDescriptor.supportedCommands` and global `ContractVersion` exist (`RobotDescriptor.java:6-12`, `ContractVersion.java:4-5`); `AdapterSession` advertises all four `CommandType`s (`AdapterSession.java:59`). No per-robot capability version, no state/setpoint capability names. |
-| `state.self` | **MISSING** | No Adapter/JSONL query; only registry position and internal entity getters. |
+| `state.self` | **SUPPORTED** | `RobotState`, volatile `RobotStateStore`, JSONL `state` op, SDK `Robot.state()`; tests `RobotStateStoreTest`, `TransportCodecTest`, SDK `test_state_*`. No in-game verification. |
 | `state.inventory` | **MISSING** | `SwarmieInventory` has 9 slots and selected slot (`SwarmieInventory.java:17-23,100-114`), but it is only exposed by debug `swarmie inventory show`, not Adapter/JSONL. |
 | `state.block` | **MISSING** | `WorldQuery.queryBlock` and `BlockQueryResult` exist (`WorldQuery.java`, `DefaultWorldQuery.java:31-56`); no Adapter/JSONL operation. |
 | `state.region` | **MISSING** | `queryRegion` exists with 4096 cap and `complete`/`unavailable` (`DefaultWorldQuery.java:59-93`); no public operation. |
 | `state.entities` | **MISSING** | `queryEntities` exists with 256/65536 limits and `complete`/`truncated` (`DefaultWorldQuery.java:95-148`); no public operation. |
 | `state.sensor` | **MISSING** | `LocalSensor`/`SensorObservation` and `DefaultLocalSensor` exist (`DefaultLocalSensor.java:60-153`); no public operation; line-of-sight returns `UNSUPPORTED` (`DefaultLocalSensor.java:56-61`). |
 | Observation completeness/status model | **PARTIAL** | Internal `QueryStatus`, `RegionQueryResult.complete`, `EntityQueryResult.complete/truncated`, `SensorObservation.incomplete/truncated` exist; not exposed. |
-| Continuous velocity setpoint | **MISSING** | Only `TIMED_FLIGHT` queued action (`SwarmieRuntime.java:73-88`, `TimedFlightCommand.java`) and debug `swarmie velocity`; no Adapter setpoint op. |
+| Continuous velocity setpoint | **SUPPORTED** | `VelocitySetpoints` + `AdapterSession.requestVelocitySetpoint` + JSONL `setpoint` op + SDK `Robot.set_velocity`; applied before `Runtime`/inbound dispatch on the server tick. Clamping, replacement and clear are tested. No in-game verification. |
 | Orientation setpoint | **MISSING** | No controller or transport; entity yaw/pitch are inherited but never controlled. |
-| Latest-wins/revision/clear semantics | **MISSING** | No setpoint state or revision; `STOP` is a queued action (`StopCommand.java`) and `TIMED_FLIGHT` is FIFO. |
+| Latest-wins/revision/clear semantics | **SUPPORTED** | `VelocitySetpoints` revision counter and last-writer-wins map; `clear` is a setpoint operation, not the legacy `STOP` action. Unit tested. |
 | `mine_block` | **SUPPORTED** (with limits) | `CommandSpec.MineBlock` (`CommandSpec.java:36-46`), `MineBlockCommand`, `InteractionActor.mineBlock` (`InteractionActor.java:34-50`), validation (`InteractionActor.java:92-125`), `InteractionRuntimeTest` mine tests, live matrix in `docs/adapter-command-specs.md`. Native return is not independent side-effect confirmation. |
 | `use_item_on_block` | **SUPPORTED** (with limits) | `CommandSpec.UseItemOnBlock` (`CommandSpec.java:49-59`), `UseItemOnBlockCommand`, `InteractionActor.useItemOn` (`InteractionActor.java:52-90`), tests and live matrix. Container GUI is not opened; chest success may not mean content changed (`docs/adapter-command-specs.md`). |
 | `attack_entity` | **MISSING** | No contract spec, runtime command or interaction method. |
@@ -1015,8 +1055,8 @@ Status meanings:
 | Reconnect continuity | **SUPPORTED** (bounded) | SDK reconnect/replay and epoch invalidation tests (`test_client.py:262-306`); no cross-epoch action recovery, and events older than the ring are lost. |
 | Event loss semantics | **SUPPORTED** | `missed=true` and `oldestAvailableSequence`; SDK raises `EventGapError` (`tools/sdk/swarmie/errors.py`), tests `test_gap_*`. |
 | Direct response vs event separation | **SUPPORTED** | `robots`/`ack`/`cancel_ack` direct; command events async; SDK `test_ack_is_not_completion`. |
-| Public JSONL `observe`/`setpoint` ops | **MISSING** | Current ops are `robots`, `events`, `submit`, `cancel`, `ping` (`docs/local-transport.md`; `TransportCodec.java`). |
-| Capability-gated unsupported errors | **MISSING** | `UNSUPPORTED_COMMAND` exists (`ErrorCode.java:21`), but no state/setpoint capability checks; no `UNSUPPORTED_CAPABILITY`. |
+| Public JSONL `observe`/`setpoint` ops | **PARTIAL** | `state` and `setpoint` (velocity) ops are implemented; other observation kinds are not. Existing ops remain `robots`, `events`, `submit`, `cancel`, `ping` (`docs/local-transport.md`). |
+| Capability-gated unsupported errors | **PARTIAL** | `UNSUPPORTED_COMMAND` and `MOTION_CHANNEL_BUSY` exist; state lifecycle errors use existing robot codes. No general per-capability negotiation yet. |
 | Error layering (request/terminal/timeout) | **PARTIAL** | SDK separates `CommandRejected`, terminal `CommandResult`, `WaitTimeout`; no public target/resource/capability codes (see §9). |
 
 The table is intentionally conservative. “Internal implementation exists” is
@@ -1033,9 +1073,9 @@ These must be resolved before v1 is declared implemented:
    capability? The design defines its semantics, but it is MISSING. If deferred,
    remove it from v1 `setpoints` and document the curve scenario's facing
    limitation.
-2. **Velocity clamping vs rejection.** This design proposes clamping with
-   `clamped=true`; confirm that or choose rejection. The choice must be frozen
-   before implementation, because it changes the ack contract.
+2. ~~Velocity clamping vs rejection.~~ **Resolved by implementation:** clamp
+   with `clamped=true` and report the effective velocity. The ack contract is
+   frozen for this slice.
 3. **Position hold / hover.** The design intentionally does not promise position
    hold. If farming or inspection needs exact station-keeping, a new setpoint
    channel/controller is required.

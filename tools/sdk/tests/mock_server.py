@@ -32,6 +32,34 @@ def make_robot(
     }
 
 
+def make_state(
+    robot_id: str,
+    epoch: int = 424242,
+    tick: int = 1,
+    dimension: str = "minecraft:overworld",
+    x: float = 0.0,
+    y: float = 64.0,
+    z: float = 0.0,
+    vx: float = 0.0,
+    vy: float = 0.0,
+    vz: float = 0.0,
+    yaw: float = 0.0,
+    pitch: float = 0.0,
+    lifecycle: str = "LOADED",
+) -> Dict[str, Any]:
+    return {
+        "robotId": robot_id,
+        "serverEpoch": epoch,
+        "serverTick": tick,
+        "dimensionId": dimension,
+        "position": {"x": x, "y": y, "z": z},
+        "velocity": {"x": vx, "y": vy, "z": vz},
+        "yaw": yaw,
+        "pitch": pitch,
+        "lifecycle": lifecycle,
+    }
+
+
 def make_event(
     epoch: int,
     sequence: int,
@@ -99,6 +127,8 @@ class MockSwarmieServer:
         self.cancel_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
         self.events_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
         self.robots_handler: Optional[Callable[[], List[Dict[str, Any]]]] = None
+        self.state_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+        self.setpoint_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
         self.error_for_op: Optional[Dict[str, Any]] = None
         self.push_before_ack: Optional[List[Dict[str, Any]]] = None
 
@@ -255,6 +285,41 @@ class MockSwarmieServer:
                 )
             self._send_locked({"type": "events", "id": request_id, "batch": batch})
             return
+        if op == "state":
+            if self.state_handler is not None:
+                state = self.state_handler(request)
+                self._send_locked({"type": "state", "id": request_id, "state": state})
+                return
+            robot = self._find_robot(str(request.get("robot", "")))
+            if robot is None:
+                self.send_error(request_id, "ROBOT_NOT_FOUND", "robot is not registered")
+                return
+            if robot["lifecycle"] != "LOADED":
+                code = "ROBOT_REMOVED" if robot["lifecycle"] == "REMOVED" else "ROBOT_NOT_LOADED"
+                self.send_error(request_id, code, "robot is not available")
+                return
+            self._send_locked({
+                "type": "state",
+                "id": request_id,
+                "state": make_state(
+                    robot["robotId"],
+                    epoch=self.epoch,
+                    dimension=robot["dimensionId"],
+                    x=robot["position"]["x"],
+                    y=robot["position"]["y"],
+                    z=robot["position"]["z"],
+                    lifecycle=robot["lifecycle"],
+                ),
+            })
+            return
+        if op == "setpoint":
+            ack = (
+                self.setpoint_handler(request)
+                if self.setpoint_handler is not None
+                else self._default_setpoint_ack(request)
+            )
+            self._send_locked({"type": "setpoint_ack", "id": request_id, "ack": ack})
+            return
         if op == "submit":
             with self._lock:
                 self._submit_count += 1
@@ -291,6 +356,28 @@ class MockSwarmieServer:
             "internalCommandId": "1",
             "state": "QUEUED",
             "message": "",
+        }
+
+    def _find_robot(self, robot_id: str) -> Optional[Dict[str, Any]]:
+        for robot in self.robots:
+            if robot.get("robotId") == robot_id:
+                return robot
+        return None
+
+    def _default_setpoint_ack(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        clear = bool(request.get("clear"))
+        value = request.get("value") or {"x": 0.0, "y": 0.0, "z": 0.0}
+        return {
+            "robotId": request.get("robot"),
+            "channel": request.get("channel", "velocity"),
+            "revision": 1,
+            "active": not clear,
+            "accepted": True,
+            "effectiveVelocity": None if clear else value,
+            "clamped": False,
+            "serverEpoch": self.epoch,
+            "serverTick": 1,
+            "message": "cleared" if clear else "",
         }
 
     def _default_cancel_ack(self, request: Dict[str, Any]) -> Dict[str, Any]:

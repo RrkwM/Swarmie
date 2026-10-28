@@ -47,6 +47,25 @@ class RobotNotFound(SwarmieError):
         super().__init__(f"robot not found: {robot_id}")
 
 
+class RobotNotLoaded(SwarmieError):
+    """The robot exists but is not currently available for live state/control."""
+
+    def __init__(self, robot_id: str, code: str = "ROBOT_NOT_LOADED") -> None:
+        self.robot_id = robot_id
+        self.code = code
+        super().__init__(f"robot not loaded: {robot_id} ({code})")
+
+
+class SetpointRejected(SwarmieError):
+    """The server rejected a setpoint request without changing the target."""
+
+    def __init__(self, ack) -> None:
+        self.ack = ack
+        super().__init__(
+            f"setpoint rejected: {ack.error or 'unknown error'} ({ack.message})"
+        )
+
+
 class CommandRejected(SwarmieError):
     """The Adapter rejected a submission; the command was not accepted."""
 

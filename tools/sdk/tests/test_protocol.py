@@ -23,7 +23,7 @@ from swarmie import (  # noqa: E402
     normalize_robot_id,
 )
 from swarmie import protocol  # noqa: E402
-from mock_server import make_event  # noqa: E402
+from mock_server import make_event, make_state  # noqa: E402
 
 ROBOT = "11111111-1111-4111-8111-111111111111"
 
@@ -128,6 +128,75 @@ class AckParsingTest(unittest.TestCase):
     def test_missing_status_is_a_protocol_error(self):
         with self.assertRaises(ProtocolError):
             protocol.parse_ack({"robotId": ROBOT})
+
+
+class StateAndSetpointParsingTest(unittest.TestCase):
+    def test_state_snapshot(self):
+        state = protocol.parse_state(
+            make_state(
+                ROBOT,
+                epoch=9,
+                tick=77,
+                x=1.25,
+                y=64.0,
+                z=-3.5,
+                vx=0.1,
+                vy=0.0,
+                vz=-0.2,
+                yaw=45.0,
+                pitch=-5.0,
+            )
+        )
+        self.assertEqual(state.robot_id, ROBOT)
+        self.assertEqual(state.server_epoch, 9)
+        self.assertEqual(state.server_tick, 77)
+        self.assertEqual(state.position.z, -3.5)
+        self.assertEqual(state.velocity.x, 0.1)
+        self.assertEqual(state.yaw, 45.0)
+        self.assertEqual(state.lifecycle.value, "LOADED")
+
+    def test_state_missing_velocity_is_a_protocol_error(self):
+        payload = make_state(ROBOT)
+        del payload["velocity"]
+        with self.assertRaises(ProtocolError):
+            protocol.parse_state(payload)
+
+    def test_setpoint_ack(self):
+        ack = protocol.parse_setpoint_ack(
+            {
+                "robotId": ROBOT,
+                "channel": "velocity",
+                "revision": 3,
+                "active": True,
+                "accepted": True,
+                "effectiveVelocity": {"x": 0.1, "y": 0.0, "z": 0.0},
+                "clamped": False,
+                "serverEpoch": 99,
+                "serverTick": 12,
+                "message": "",
+            }
+        )
+        self.assertTrue(ack.accepted)
+        self.assertTrue(ack.active)
+        self.assertEqual(ack.revision, 3)
+        self.assertEqual(ack.server_epoch, 99)
+        self.assertEqual(ack.effective_velocity.x, 0.1)
+        self.assertIsNone(ack.error)
+
+    def test_active_setpoint_requires_effective_velocity(self):
+        with self.assertRaises(ProtocolError):
+            protocol.parse_setpoint_ack(
+                {
+                    "robotId": ROBOT,
+                    "channel": "velocity",
+                    "revision": 1,
+                    "active": True,
+                    "accepted": True,
+                    "clamped": False,
+                    "serverEpoch": 99,
+                    "serverTick": 1,
+                }
+            )
 
 
 class EventParsingTest(unittest.TestCase):

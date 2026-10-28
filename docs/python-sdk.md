@@ -14,8 +14,8 @@ The SDK is a thin, typed Python layer over the Adapter's JSONL protocol:
 - `Robot` is bound to **one explicit UUID** and can never silently retarget;
 - `CommandHandle` tracks one submitted command from acknowledgement to terminal
   result, including cancel and timeout;
-- `RobotInfo`, `CommandResult`, `EventBatch` and a typed exception hierarchy
-  make failures explicit.
+- `RobotInfo`, `RobotState`, `SetpointAck`, `CommandResult`, `EventBatch` and a
+  typed exception hierarchy make failures explicit.
 
 Supported commands are exactly the four Adapter commands:
 
@@ -26,8 +26,11 @@ MINE_BLOCK
 USE_ITEM_ON_BLOCK
 ```
 
-There is no pathfinding, `MoveTo`, naming, inventory, GUI-container or sensor
-API in this SDK, because the Adapter has no such commands.
+The SDK also exposes live `Robot.state()` for the robot itself and a persistent
+velocity setpoint (`Robot.set_velocity()` / `clear_velocity()`). There is no
+pathfinding, `MoveTo`, naming, inventory, GUI-container, block/entity/sensor
+observation or orientation-setpoint API in this slice, because the Adapter has
+no such public operations yet.
 
 ## 2. Enable the transport
 
@@ -96,7 +99,58 @@ server (`ROBOT_NOT_LOADED` / `ROBOT_REMOVED`).
 `SwarmieClient.from_env()` uses `SWARMIE_HOST` and `SWARMIE_PORT`.
 All methods are synchronous; use one client per thread.
 
-## 5. Submit, wait, inspect
+## 5. Live self-state and persistent velocity
+
+### 5.1 Read state
+
+`Robot.state()` performs a server-side `state` request. It is not the registry
+metadata in `RobotInfo`; it contains the authoritative live position, actual
+velocity, yaw/pitch, dimension, lifecycle and the server tick used as freshness.
+
+```python
+state = robot.state()
+print(state.server_tick, state.position, state.velocity, state.yaw, state.pitch)
+if not state.lifecycle.is_loaded:
+    ...
+```
+
+- `server_epoch`/`server_tick` identify the session and freshness point;
+- `state.velocity` is the actual native velocity, not the setpoint target;
+- a non-loaded/removed/unavailable robot raises `RobotNotLoaded`; an absent UUID
+  raises `RobotNotFound`;
+- no inventory, block/region/entity/sensor or environmental completeness query
+  is exposed in this slice.
+
+### 5.2 Velocity setpoints
+
+```python
+ack = robot.set_velocity(Vec3(0.1, 0.0, 0.0))
+print(ack.accepted, ack.active, ack.revision, ack.effective_velocity)
+
+ack = robot.clear_velocity()
+print(ack.accepted, ack.active)
+```
+
+- A setpoint is a persistent target, **not** a `TimedFlight` action and not in
+  the action FIFO.
+- A newer accepted setpoint replaces the previous target for velocity; use
+  `revision` for ordering.
+- `ack.accepted` means the server accepted the target; it does not mean the
+  robot has reached it. Read `state().velocity` to observe the response.
+- The server clamps velocities longer than `0.35` blocks/tick and reports
+  `clamped=True` plus the effective vector.
+- `set_velocity(0)` is an explicit zero target, not a position-hold guarantee.
+  `clear_velocity()` releases the target and lets the controller decelerate.
+- While a velocity setpoint is active, `TimedFlight`/`Stop` submissions are
+  rejected with `MOTION_CHANNEL_BUSY`; clear the setpoint first. While a
+  `TimedFlight`/`Stop` command is active or queued, setpoint requests are
+  rejected with `MOTION_CHANNEL_BUSY`; wait for the legacy motion to finish.
+- The low-level debug commands `swarmie velocity`/`swarmie stop` are not public
+  SDK operations and bypass this arbitration.
+- Only the velocity channel exists in this slice. Orientation, hover and
+  position hold are not exposed.
+
+## 6. Submit, wait, inspect
 
 ```python
 from swarmie import TimedFlight, Vec3
@@ -123,7 +177,7 @@ event_type, sequence, server_tick, from_ack, had_gap
 because no retained terminal event was available; it is a known state, not a
 fresh event.
 
-## 6. Cancel
+## 7. Cancel
 
 ```python
 ack = handle.cancel()                 # CancelAck
@@ -138,12 +192,14 @@ result = handle.wait(timeout=10.0)    # COMMAND_CANCELLED event
 - A rejected cancel (for example a correlation owned by another robot) raises
   `CancelRejected`.
 
-## 7. Failures are explicit
+## 8. Failures are explicit
 
 | Situation | SDK behaviour |
 |---|---|
 | Unknown UUID | `RobotNotFound` |
+| Robot exists but is not loaded/available | `RobotNotLoaded` for state; `CommandRejected` for actions |
 | Submit rejected (unloaded/removed/queue/full/conflict) | `CommandRejected` with the structured ack |
+| Setpoint rejected (unsupported channel/motion busy/invalid) | `SetpointRejected` with the structured ack |
 | Command did not finish in time | `WaitTimeout` carrying the handle and current state |
 | Cancel unknown | `CancelUnknown` (or a `CancelAck` with `status=UNKNOWN`) |
 | Socket closed/reset | `ConnectionClosed` |
@@ -152,7 +208,7 @@ result = handle.wait(timeout=10.0)    # COMMAND_CANCELLED event
 | Event cursor missed events | `client.missed=True`; `wait()` raises `EventGapError` unless the awaited result is already terminal (then `result.had_gap=True`) |
 | Server epoch changed | `SessionChangedError`; pending handles cannot complete |
 
-## 8. Events, reconnect and sessions
+## 9. Events, reconnect and sessions
 
 `wait()` reads pushed event batches and routes them by correlation id. Events
 for other robots are stored, not discarded. `client.poll_events()` performs a
@@ -171,7 +227,7 @@ read request using the client cursor.
 A reconnect is a resynchronization, not a guarantee that events published while
 disconnected were retained.
 
-## 9. Examples
+## 10. Examples
 
 | Script | Purpose |
 |---|---|
@@ -179,19 +235,21 @@ disconnected were retained.
 | [`02_fly_and_stop.py`](../tools/sdk/examples/02_fly_and_stop.py) | explicit UUID, short flight, result check, stop |
 | [`03_cancel_command.py`](../tools/sdk/examples/03_cancel_command.py) | start a long flight, cancel it, read terminal state |
 | [`04_mine_block.py`](../tools/sdk/examples/04_mine_block.py) | optional world-changing mining example |
+| [`05_curve_flight.py`](../tools/sdk/examples/05_curve_flight.py) | repeated live-state reads and persistent velocity setpoints on a 3D curve |
 
 Run one from the repository root:
 
 ```powershell
 python tools/sdk/examples/01_list_robots.py
 python tools/sdk/examples/02_fly_and_stop.py --robot <uuid> --duration 20
+python tools/sdk/examples/05_curve_flight.py --robot <uuid> --duration 15
 ```
 
 The end-to-end smoke test remains at
 [`tools/client/swarmie_client.py`](../tools/client/swarmie_client.py); it now
 uses the SDK and accepts `--robot <uuid>`.
 
-## 10. Tests
+## 11. Tests
 
 ```powershell
 python -m unittest discover -s tools/sdk/tests -v
@@ -201,13 +259,22 @@ The suite uses a controllable in-process mock server and covers message
 encoding/decoding, request/response correlation, explicit UUID selection,
 ack-versus-result, timeouts, cancel and terminal states, duplicates, rejected
 submissions, connection close, server errors, same-epoch reconnect, epoch
-change, event gaps and per-robot isolation. It does **not** replace a real
-Minecraft integration test.
+change, event gaps, per-robot isolation, live-state parsing, setpoint
+acceptance/replacement/clear and setpoint rejection. It does **not** replace a
+real Minecraft integration test.
 
-## 11. Limits
+## 12. Limits
 
 - localhost development transport only; default-off, loopback, no auth/TLS;
-- four commands only; no MoveTo, inventory, containers, naming, LOS or batch;
+- four legacy commands only; the only additional public operations are live
+  self-state and the velocity setpoint; no MoveTo, inventory, containers,
+  naming, LOS or batch;
+- live state is limited to robot self-state; no block/entity/sensor queries;
+- velocity setpoints only; no orientation, hover, position hold or trajectory;
+- `TimedFlight`/`Stop` and velocity setpoints exclude each other on the motion
+  channel (`MOTION_CHANNEL_BUSY`);
 - synchronous, single-threaded API; no asyncio/background worker;
 - no cross-process persistence: command/event history is per server session;
+- no in-game verification is claimed for this slice; state/setpoint tests are
+  unit/mock based;
 - Python SDK version `0.1.0` and Adapter contract `0.1` are pre-stable.
