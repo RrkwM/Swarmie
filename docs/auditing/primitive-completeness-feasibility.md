@@ -3,6 +3,12 @@
 > Status: feasibility prototype, not a completeness claim. No Swarmie runtime,
 > contract, command or Python SDK behavior was changed.
 >
+> **Round 0 update (2026-10-29):** the audit model was normalized. The counts
+> in §1/§7 and the blanket clientbound `EXCLUDED` decision in §5 are superseded
+> by [round-0-report.md](round-0-report.md) and
+> [audit-model.md](audit-model.md). Current model: 578 source records,
+> 178 review units, 21 `REVIEWED`, 157 `PENDING`, 0 GAPs.
+>
 > Audit date: 2026-10-29. Branch: `audit/primitive-completeness`.
 
 ## 1. Answer in brief
@@ -195,20 +201,21 @@ The extractor enumerates 127 top-level `Clientbound*Packet` classes in
 The generated file does not assign state domains automatically. That is a
 semantic judgment. The reviewed catalogue maps representative groups:
 
-| Reviewed group | Examples | Disposition |
+| Reviewed group | Examples | Round 0 status |
 |---|---|---|
-| `SEM-019` block observations | `BLOCK_UPDATE`, `SECTION_BLOCKS_UPDATE` | EXCLUDED as controller observation |
-| `SEM-020` entity observations | `ADD_ENTITY`, `MOVE_ENTITY`, `SET_ENTITY_DATA` | EXCLUDED |
-| `SEM-021` inventory observations | `CONTAINER_SET_CONTENT`, `CONTAINER_SET_SLOT` | EXCLUDED |
-| `SEM-022` world/chunk | `SET_TIME`, `LEVEL_CHUNK_WITH_LIGHT` | EXCLUDED |
-| `SEM-023` presentation/UI | `SOUND`, `LEVEL_PARTICLES`, `OPEN_SCREEN` | CONTENT |
+| `SEM-019` block observations | `BLOCK_UPDATE`, `SECTION_BLOCKS_UPDATE` | PENDING (Round 3) |
+| `SEM-020` entity observations | `ADD_ENTITY`, `MOVE_ENTITY`, `SET_ENTITY_DATA` | PENDING (Round 3) |
+| `SEM-021` inventory observations | `CONTAINER_SET_CONTENT`, `CONTAINER_SET_SLOT` | PENDING (Round 3) |
+| `SEM-022` world/chunk | `SET_TIME`, `LEVEL_CHUNK_WITH_LIGHT` | PENDING (Round 3) |
+| `SEM-023` presentation/UI | `SOUND`, `LEVEL_PARTICLES`, `OPEN_SCREEN` | PENDING (Round 3) |
 | `SEM-032` protocol | `BUNDLE`, `CHUNK_BATCH_*`, `START_CONFIGURATION` | PROTOCOL_MECHANISM |
 
-The exclusion is deliberate: a packet being available to an ordinary player
-client does not make it part of the robot's authoritative observation interface.
-Swarmie's server-side `WorldQuery`/`LocalSensor` remain the intended observation
-path. This inventory is a review baseline for the client information surface,
-not proof of observation completeness.
+Round 0 **withdrew** the blanket `EXCLUDED` conclusion: a packet being
+available to an ordinary player client may or may not be usable as robot
+observation, and that is a Round 3 semantic decision. The server-side
+`WorldQuery`/`LocalSensor` remain the current observation path, but they are not
+used to prejudge the clientbound inventory. This is a review baseline, not proof
+of observation completeness.
 
 ## 6. Source inventory D — Fabric extension points
 

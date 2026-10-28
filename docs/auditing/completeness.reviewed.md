@@ -41,7 +41,7 @@
 
 - title: Use item in air / hand use
 - sources: SB.PLAY.USE_ITEM
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: items
 - operation: item use
 - temporal: ACTION
@@ -50,30 +50,32 @@
 - rationale: The current Adapter exposes only USE_ITEM_ON_BLOCK; right-click-in-air item use is a distinct native operation and is not represented.
 - fingerprint: SB.PLAY.USE_ITEM=121f20233b8a1830e611ebff425c603dbbedf2419de28fb1dd579887e21047b1
 - dispatch: SB.PLAY.USE_ITEM=ServerPlayerGameMode.useItem
-- status: proposed
-- questions: Should air item use become a primitive, or is it always content-specific?
+- status: pending
+- reason: Whether air/hand item use is a generic primitive or content-only is unresolved.
+- blocker: Requires Round 1 active-ingress semantic review.
 
 ## SEM-004
 
 - title: Entity attack
 - sources: SB.PLAY.ATTACK
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: entities
 - operation: attack
 - temporal: ACTION
 - resources: main-hand item, attack cooldown
 - constraints: attack range; world-border bounds; item-enabled and cannotAttackWithItem guards; native ServerPlayer.attack
-- rationale: Attack is a generic embodied operation but the Adapter has no attack command. It is recorded as a concrete gap rather than silently mapped to interact.
+- rationale: Attack is a generic embodied operation but the Adapter has no attack command. It is recorded as a concrete gap candidate rather than silently mapped to interact.
 - fingerprint: SB.PLAY.ATTACK=42cf5e4254b951cf52b6d0d40674a0825b8288b50033e9908ca73d3e824c2445
 - dispatch: SB.PLAY.ATTACK=ServerPlayer.attack
-- status: proposed
-- questions: Is attack in the intended Adapter scope, or should it stay a content/weapon concern?
+- status: pending
+- reason: Whether entity attack belongs in the public Adapter scope is unresolved.
+- blocker: Requires Round 1/2 scope decision and a product decision on attack primitives.
 
 ## SEM-005
 
 - title: Entity interaction
 - sources: SB.PLAY.INTERACT
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: entities
 - operation: interaction
 - temporal: ACTION
@@ -82,8 +84,9 @@
 - rationale: Right-click entity interaction, including name-tag/mount/villager content, is not represented by the four current Adapter commands.
 - fingerprint: SB.PLAY.INTERACT=455c5b6dd7b95e6ff8d169003e5f1c445424531f1ab1a030ef2ad2102aac9d81
 - dispatch: SB.PLAY.INTERACT=ServerPlayer.interactOn
-- status: proposed
-- questions: Which entity interactions are generic primitives versus CONTENT?
+- status: pending
+- reason: Whether entity interaction is a generic primitive or content-specific is unresolved.
+- blocker: Requires Round 1/2 scope decision and content-boundary review.
 
 ## SEM-006
 
@@ -105,7 +108,7 @@
 
 - title: Selected hotbar slot
 - sources: SB.PLAY.SET_CARRIED_ITEM
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: inventory, robot_self
 - operation: selection
 - temporal: SETPOINT
@@ -114,8 +117,9 @@
 - rationale: The robot inventory tracks a selected slot for MINE/USE, but there is no public Adapter operation to change it, so the packet itself is not mapped.
 - fingerprint: SB.PLAY.SET_CARRIED_ITEM=07a62ab50f091133f4c6d3e94a6cc1203f14a282fe2b583ae2dbac6fe9f246ee
 - dispatch: SB.PLAY.SET_CARRIED_ITEM=Inventory.setSelectedSlot
-- status: proposed
-- questions: Should slot selection be a public primitive or an implementation detail of content commands?
+- status: pending
+- reason: Whether slot selection is a public primitive or an implementation detail is unresolved.
+- blocker: Requires Round 1 inventory-primitive review.
 
 ## SEM-008
 
@@ -288,76 +292,81 @@
 
 - title: Clientbound block observations
 - sources: CB.PLAY.BLOCK_UPDATE, CB.PLAY.SECTION_BLOCKS_UPDATE, CB.PLAY.BLOCK_CHANGED_ACK
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: blocks
 - operation: observation
 - temporal: QUERY
 - resources: client connection
 - constraints: prediction/ack correlation; server-authoritative block state
-- rationale: Available to an ordinary client, but the robot controller's observation path is the server-side WorldQuery, not client packets. This is a review baseline, not the public query API.
+- rationale: Available to an ordinary client, but the previous blanket exclusion from the robot observation contract is withdrawn pending Round 3 review.
 - fingerprint: CB.PLAY.BLOCK_UPDATE=7ec49960d33707d42122d4fea6510031bc2fc1bbcce4f6c6aa1198ce59a89f73
-- status: proposed
-- questions: Should any clientbound packet ever feed robot observation, or only server-side queries?
+- status: pending
+- reason: Clientbound observation semantics have not been reviewed; the prior EXCLUDED decision is withdrawn.
+- blocker: Round 3 observation/self-state review not started.
 
 ## SEM-020
 
 - title: Clientbound entity observations
 - sources: CB.PLAY.ADD_ENTITY, CB.PLAY.REMOVE_ENTITIES, CB.PLAY.MOVE_ENTITY, CB.PLAY.ENTITY_POSITION_SYNC, CB.PLAY.SET_ENTITY_DATA, CB.PLAY.TELEPORT_ENTITY
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: entities
 - operation: observation
 - temporal: QUERY
 - resources: client connection
 - constraints: interpolation/tracking state; entity data may be partial
-- rationale: Same embodied-principle decision as block observations: client packets are presentation/delta streams, not a guaranteed observation contract.
+- rationale: The prior blanket exclusion is withdrawn; clientbound entity streams may carry robot-relevant self/entity state.
 - fingerprint: CB.PLAY.ADD_ENTITY=8f73fc92cb96d539ca4f9a2cce370d82aa022ba3a2a6743a17a7e222af893899
-- status: proposed
-- questions: none
+- status: pending
+- reason: Entity observation semantics and self-state relevance are unreviewed.
+- blocker: Round 3 observation/self-state review not started.
 
 ## SEM-021
 
 - title: Clientbound inventory observations
 - sources: CB.PLAY.CONTAINER_SET_CONTENT, CB.PLAY.CONTAINER_SET_SLOT, CB.PLAY.SET_PLAYER_INVENTORY, CB.PLAY.SET_CURSOR_ITEM, CB.PLAY.SET_HELD_SLOT
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: inventory
 - operation: observation
 - temporal: QUERY
 - resources: client connection
 - constraints: remote state ids; prediction reconciliation
-- rationale: The robot inventory is server-authoritative; client container packets are not a controller observation API.
+- rationale: The robot inventory is server-authoritative, but the prior clientbound exclusion is withdrawn pending the Round 3 review.
 - fingerprint: CB.PLAY.CONTAINER_SET_SLOT=2ae231b956f65e49115eabb3efa224f940a5eb2d1c1e90da8d9e2e62a01c8387
-- status: proposed
-- questions: none
+- status: pending
+- reason: Whether clientbound inventory state is needed for robot self-state is unreviewed.
+- blocker: Round 3 observation/self-state review not started.
 
 ## SEM-022
 
 - title: Clientbound world/chunk observations
 - sources: CB.PLAY.SET_TIME, CB.PLAY.GAME_EVENT, CB.PLAY.LEVEL_CHUNK_WITH_LIGHT, CB.PLAY.FORGET_LEVEL_CHUNK, CB.PLAY.LIGHT_UPDATE
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: world_environment
 - operation: observation
 - temporal: QUERY
 - resources: client connection
 - constraints: chunk tracking/light state; server-side query avoids delivery gaps
-- rationale: Chunk streaming is a client-loading concern; the robot's server-side query does not depend on these packets.
+- rationale: The prior blanket exclusion is withdrawn; the observation review must decide whether client-side world state is usable evidence.
 - fingerprint: CB.PLAY.SET_TIME=0145f88cbd7f24ceeaee18de7ab3c2fdf627ae867a965eda8e27dd3ac9ef1e27
-- status: proposed
-- questions: none
+- status: pending
+- reason: Clientbound world/chunk observation value is unreviewed.
+- blocker: Round 3 observation/self-state review not started.
 
 ## SEM-023
 
 - title: Presentation and UI feedback
 - sources: CB.PLAY.SOUND, CB.PLAY.LEVEL_PARTICLES, CB.PLAY.ANIMATE, CB.PLAY.OPEN_SCREEN, CB.PLAY.SET_TITLE_TEXT, CB.PLAY.BOSS_EVENT
-- disposition: CONTENT
+- proposal: CONTENT
 - domain: presentation, UI
 - operation: feedback
 - temporal: n/a
 - resources: client resources
 - constraints: no authoritative state change; screen-specific
-- rationale: Sounds, particles, animations and screens are presentation, not world-information or robot primitives.
+- rationale: The previous CONTENT decision is provisional; Round 3 must decide whether presentation packets are outside observation or supporting feedback.
 - fingerprint: CB.PLAY.SOUND=ca768b9c7fc7ae6b56bbefa9d1d3939bb2df99a853b67c5f3c03a6595a293104
-- status: accepted
-- questions: none
+- status: pending
+- reason: Presentation-vs-observation boundary is unreviewed.
+- blocker: Round 3 observation/self-state review not started.
 
 ## SEM-024
 
@@ -394,7 +403,7 @@
 
 - title: Item pickup
 - sources: PAS.ItemEntity.playerTouch#97e71872, PAS.LivingEntity.take#a421cd36, PAS.ServerPlayer.take#a421cd36
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: items, entities
 - operation: pickup
 - temporal: ACTION
@@ -402,8 +411,9 @@
 - constraints: item pickup delay/ownership; inventory add; player-touch path
 - rationale: Swarmie does not collect drops; mining drops stay in the world. There is no pickup primitive.
 - fingerprint: PAS.ItemEntity.playerTouch#97e71872=03c8e8e10df7cb0573044e2422d0c2667f9150f94b4eb810ea1fd89dcc73c902
-- status: proposed
-- questions: Is pickup in scope for the robot platform, or intentionally excluded?
+- status: pending
+- reason: Whether pickup belongs in the robot platform is a product decision, not a mechanical fact.
+- blocker: Requires Round 2 passive-embodiment scope review.
 
 ## SEM-027
 
@@ -469,7 +479,7 @@
 
 - title: Fabric item storage lookup and transfer
 - sources: EXT.FABRIC.ITEM_STORAGE.SIDED, EXT.FABRIC.BLOCK_API_LOOKUP.find#d3f47900, EXT.FABRIC.STORAGE.insert#10245b9a, EXT.FABRIC.STORAGE.extract#10245b9a
-- disposition: EXCLUDED
+- proposal: EXCLUDED
 - domain: inventory, blocks
 - operation: transfer
 - temporal: ACTION
@@ -477,8 +487,9 @@
 - constraints: lookup is position/side dependent; no global storage registry; transactional insert/extract
 - rationale: The Adapter has no transfer primitive. ItemStorage is a generic capability shape; concrete storages are content and require a live world probe.
 - fingerprint: EXT.FABRIC.ITEM_STORAGE.SIDED=1cfa9e4530b0061cb186e0a5108458d0dd2492b070315f44cd07b4cea7dc2c58
-- status: proposed
-- questions: Is transfer a future primitive, or left to content-specific robots?
+- status: pending
+- reason: Whether a generic transfer primitive is required is unresolved.
+- blocker: Requires a product/scope decision after Round 2; no transfer command exists today.
 
 ## SEM-032
 

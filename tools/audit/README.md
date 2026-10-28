@@ -7,13 +7,16 @@ primitive audit. It is **not** a completeness gate and is not wired into CI.
 |---|---|
 | `ExtractAudit.java` | JDK 25 Class-File API extractor for packets, handlers, fields, direct calls, fingerprints and Fabric API signatures |
 | `regenerate.ps1` | Rebuild `docs/auditing/completeness.generated.json` from local Loom/Gradle artifacts (no downloads) |
-| `validate_completeness.py` | Compare generated sources with the reviewed catalogue; report new/disappeared/hash/dispatch/unreviewed findings |
-| `tests/test_validator.py` | Fixture tests for every validator rule |
+| `normalize_audit.py` | Assign roles, build default/final review units, map the reviewed catalogue and emit the normalization ledger |
+| `validate_completeness.py` | Validate fingerprints/dispatch, plus candidate/evidence/unit/reference invariants of the normalized model |
+| `tests/` | 33 fixture tests (validator rules and model invariants) |
 
 ## Commands
 
 ```powershell
 .\tools\audit\regenerate.ps1
+
+python tools\audit\normalize_audit.py
 
 python tools\audit\validate_completeness.py `
   --generated docs\auditing\completeness.generated.json `
@@ -22,13 +25,13 @@ python tools\audit\validate_completeness.py `
 python -m unittest discover -s tools\audit\tests -v
 ```
 
+`normalize_audit.py` writes `docs/auditing/completeness.normalized.json` and
+`docs/auditing/completeness.normalization.json`. The validator reads the model
+and ledger by default (siblings of the generated file); pass `--model` /
+`--decisions` to override.
+
 The validator exits 1 only for structural errors by default. Review findings
 (new/unreviewed sources, fingerprint or dispatch changes, disappeared sources)
-exit 0 unless `--strict` is passed. Read the feasibility report at
-`docs/auditing/primitive-completeness-feasibility.md` before enabling anything
-stricter.
-
-`regenerate.ps1` uses the local JDK and the local `tools/mc` / Gradle caches by
-default. Pass `-ServerJar`, `-ClientJar`, `-FabricNetJar`,
-`-FabricTransferJar`, `-FabricLookupJar` and `-Out` to point at equivalent
-artifacts; the script never downloads dependencies.
+exit 0 unless `--strict` is passed. Read
+`docs/auditing/round-0-report.md` and `docs/auditing/audit-model.md` before
+enabling anything stricter. No completeness gate is wired into CI.
