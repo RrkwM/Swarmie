@@ -7,8 +7,11 @@ Swarmie 遵循 [Semantic Versioning 2.0.0](https://semver.org/)。
 ## 当前版本线
 
 ```text
-0.1.0
+0.1.0（最新 Release）
+0.1.1-SNAPSHOT（main，未发布）
 ```
+
+`0.1.0` 仍是已发布的最新产物；`main` 为未发布的 `0.1.1-SNAPSHOT` 版本线。
 
 `0.y.z` 是初始开发阶段：公共 Adapter 契约和命令语义仍可能变化；尚未承诺
 1.0 兼容性。

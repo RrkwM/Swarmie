@@ -32,14 +32,15 @@ Swarmie 增加了一个真实的 Minecraft `Entity`，包含：
 
 | 项目 | 状态 |
 |---|---|
-| 版本 | `0.1.0`（pre-1.0） |
+| 版本 | `main` 为 `0.1.1-SNAPSHOT`；最新 Release 为 `0.1.0`（pre-1.0） |
 | Java | 必须 25 |
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | 通过 |
-| JUnit | 43 项通过 |
+| JUnit | 46 项通过 |
 | Release JAR | `swarmie-0.1.0.jar` |
 | JAR SHA-256 | `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
+| 开发构建 | `swarmie-0.1.1-SNAPSHOT.jar` |
 
 Adapter 契约为 `0.1`，仍处于 pre-stable。
 
@@ -52,12 +53,16 @@ Adapter 契约为 `0.1`，仍处于 pre-stable。
 2. 与 Fabric API 一起放入 `mods/`。
 3. 使用 Java 25 启动游戏。
 
-**0.1.0 是管理员/开发者预览。** 当前没有合成配方、机器人物品或刷怪蛋。
-OP 可以用：
+**0.1.0 是管理员/开发者预览。** 0.1.0 Release 没有机器人物品；OP 可以用：
 
 ```mcfunction
 /summon swarmie:swarmie ~ ~ ~
 ```
+
+`main` 上未发布的 `0.1.1-SNAPSHOT` 新增可合成的
+`swarmie:swarmie_spawn_egg`（4 铁锭、4 红石、1 铜锭），显示在“刷怪蛋”创造模式
+标签页。使用刷怪蛋会创建**新**机器人（新 UUID、空库存），不会捕获、存储或恢复
+已有机器人。`/summon` 仍然可用。
 
 然后：
 
@@ -93,7 +98,7 @@ Windows：
 产物：
 
 ```text
-build/libs/swarmie-0.1.0.jar
+build/libs/swarmie-0.1.1-SNAPSHOT.jar
 ```
 
 架构、Adapter API、测试策略和扩展边界：**[开发者指南](docs/developer-guide.zh-CN.md)**。
@@ -150,7 +155,7 @@ Release 资产包含 JAR 与 `.sha256`。
 
 ## 已知限制
 
-- 尚无生存获取方式：目前只能由 OP `/summon`；
+- 未发布的刷怪蛋只会创建新机器人；没有把已有机器人拾取、存储或召回为物品的方式；
 - FakePlayer 路径不支持 GUI 容器（箱子/熔炉/漏斗等）；API 成功不等于容器内容已改变；
 - 挖掘掉落留在世界，不会自动收集；
 - 命令在卸载时中断，重载后不会恢复；

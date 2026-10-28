@@ -37,6 +37,10 @@ The release page publishes the expected SHA-256.
 /swarmie status @e[type=swarmie:swarmie,limit=1]
 ```
 
+The unreleased `0.1.1-SNAPSHOT` build adds a craftable spawn egg: 4 iron ingots,
+4 redstone and 1 copper ingot in the Spawn Eggs tab. It always creates a new
+robot; it does not capture, store or recall an existing one.
+
 ## Dedicated server
 
 A dedicated-server smoke test has not been completed. Use the client preview

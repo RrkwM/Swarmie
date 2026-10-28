@@ -37,6 +37,9 @@ Get-FileHash .\swarmie-0.1.0.jar -Algorithm SHA256
 /swarmie status @e[type=swarmie:swarmie,limit=1]
 ```
 
+未发布的 `0.1.1-SNAPSHOT` 新增可合成刷怪蛋：4 铁锭、4 红石、1 铜锭，位于
+“刷怪蛋”标签页。它只会创建新机器人，不会捕获、存储或召回已有机器人。
+
 ## 专用服务器
 
 尚未完成专用服务器 smoke test。除非你愿意自行测试启动，否则请使用客户端预览。

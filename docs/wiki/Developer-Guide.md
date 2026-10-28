@@ -28,7 +28,7 @@ Windows:
 .\gradlew.bat runClient
 ```
 
-The output is `build/libs/swarmie-0.1.0.jar`.
+The output is `build/libs/swarmie-0.1.1-SNAPSHOT.jar`.
 
 ## Layout
 

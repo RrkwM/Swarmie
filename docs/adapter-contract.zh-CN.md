@@ -269,14 +269,14 @@ implementation(project(":contract"))
 构建后验证：
 
 ```text
-jar tf build/libs/swarmie-0.1.0.jar | findstr dev/swarmie/contract
+jar tf build/libs/swarmie-0.1.1-SNAPSHOT.jar | findstr dev/swarmie/contract
 ```
 
 实际 JAR 包含 `dev/swarmie/contract/*.class`（20 个类 + 目录条目）。
 `SwarmieMod` 启动时读取 `ContractVersion.CURRENT` 并记录版本，用于验证运行时
 类加载。
 
-实际验证（2026-10-27）：
+实际验证（2026-10-27，0.1.0 发布产物）：
 
 ```text
 jar: build/libs/swarmie-0.1.0.jar

@@ -224,13 +224,13 @@ implementation(project(":contract"))
 The root `jar` task merges contract classes. Verify:
 
 ```text
-jar tf build/libs/swarmie-0.1.0.jar | findstr dev/swarmie/contract
+jar tf build/libs/swarmie-0.1.1-SNAPSHOT.jar | findstr dev/swarmie/contract
 ```
 
 `SwarmieMod` reads `ContractVersion.CURRENT` at startup, proving runtime class
 loading.
 
-Current release:
+0.1.0 release artifact:
 
 ```text
 build/libs/swarmie-0.1.0.jar

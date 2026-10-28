@@ -47,7 +47,7 @@ The output JAR is `build/libs/swarmie-0.1.0-SNAPSHOT.jar`.
 ./gradlew test
 ```
 
-Expected: 43 JUnit tests on the current checkpoint. The test matrix is in
+Expected: 46 JUnit tests on the current checkpoint. The test matrix is in
 `docs/test-matrix.md`; it distinguishes automated, real-client, static, and
 unverified evidence. Do not report a JUnit pass as a real-client pass.
 

@@ -27,7 +27,7 @@ Windows：
 .\gradlew.bat runClient
 ```
 
-产物：`build/libs/swarmie-0.1.0.jar`。
+产物：`build/libs/swarmie-0.1.1-SNAPSHOT.jar`。
 
 ## 结构
 

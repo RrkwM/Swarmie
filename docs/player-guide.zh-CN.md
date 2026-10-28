@@ -2,7 +2,8 @@
 
 # Player Guide
 
-> 适用于 **Swarmie 0.1.0**。当前是管理员/开发者预览，不是完整生存玩法。
+> 适用于 **Swarmie 0.1.0**（最新 Release）和未发布的 `0.1.1-SNAPSHOT` 开发构建。
+> 当前是管理员/开发者预览，不是完整生存玩法。
 
 ## 1. 前置条件
 
@@ -39,13 +40,23 @@ Get-FileHash .\swarmie-0.1.0.jar -Algorithm SHA256
 
 ## 3. 当前如何获得机器人
 
-**0.1.0 没有合成配方、物品或刷怪蛋。** 这是当前最重要的使用限制。
+### 0.1.0 Release
 
-需要 OP/权限等级 2，使用：
+0.1.0 Release 没有机器人物品或合成配方。需要 OP/权限等级 2，使用：
 
 ```mcfunction
 /summon swarmie:swarmie ~ ~ ~
 ```
+
+### 未发布的 0.1.1-SNAPSHOT（main）
+
+`main` 上未发布的 `0.1.1-SNAPSHOT` 新增可合成刷怪蛋：
+
+| 物品 | 配方 | 说明 |
+|---|---|---|
+| Swarmie 刷怪蛋（`swarmie:swarmie_spawn_egg`） | 有序合成：4 铁锭、4 红石、1 铜锭 | “刷怪蛋”创造模式标签页；创建**新**机器人，新 UUID、空 9 槽库存 |
+
+刷怪蛋不会捕获、存储或恢复已有机器人，只会创建新机器人。`/summon` 仍然可用。
 
 查询已加载机器人：
 
@@ -170,7 +181,7 @@ down up north south east west
 |---|---|
 | 游戏启动时没有 Swarmie | 检查 Java 25、Fabric Loader、Fabric API、`mods/` 中的 JAR |
 | `/swarmie` 提示无权限 | 需要 OP/权限等级 2 |
-| 找不到机器人 | 确认已 `/summon`，并使用 `@e[type=swarmie:swarmie]` |
+| 找不到机器人 | 先用 `/summon` 或刷怪蛋创建，并使用 `@e[type=swarmie:swarmie]` |
 | `MINE_BLOCK FAILED (target is air)` | 目标坐标是空气，换一个实体方块 |
 | `target is outside interaction range` | 目标距机器人超过 6 格 |
 | `UNLOADED_CHUNK` | 先让目标区块加载 |
@@ -179,7 +190,7 @@ down up north south east west
 
 ## 7. 当前限制
 
-- 没有合成、物品、刷怪蛋或生存获取方式；
+- 未发布的刷怪蛋只会创建新机器人；没有把已有机器人拾取、存储或召回为物品的方式；
 - 没有 AI、寻路、自动避障、任务编排；
 - 没有 GUI 容器操作；
 - 没有远程/公网控制；localhost JSONL 仅开发者调试用；

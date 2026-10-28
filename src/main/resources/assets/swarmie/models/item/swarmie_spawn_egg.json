@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "swarmie:item/swarmie_spawn_egg"
+  }
+}

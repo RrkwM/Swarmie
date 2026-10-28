@@ -34,14 +34,15 @@ remote-network project.
 
 | Item | Status |
 |---|---|
-| Version | `0.1.0` (pre-1.0) |
+| Version | `0.1.1-SNAPSHOT` on `main`; latest release `0.1.0` (pre-1.0) |
 | Java | 25 required |
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | passing |
-| JUnit | 43 passing |
+| JUnit | 46 passing |
 | Release JAR | `swarmie-0.1.0.jar` |
 | JAR SHA-256 | `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
+| Development JAR | `swarmie-0.1.1-SNAPSHOT.jar` |
 
 The Adapter contract is `0.1` and still pre-stable.
 
@@ -55,12 +56,18 @@ Java 25.
 2. Put it in `mods/` together with Fabric API.
 3. Start the game with Java 25.
 
-**0.1.0 is an admin/developer preview.** There is no crafting recipe, robot
-item or spawn egg yet. An OP can create a robot with:
+**0.1.0 is an admin/developer preview.** The 0.1.0 release has no robot item;
+an OP can create a robot with:
 
 ```mcfunction
 /summon swarmie:swarmie ~ ~ ~
 ```
+
+The unreleased `0.1.1-SNAPSHOT` build on `main` adds a craftable
+`swarmie:swarmie_spawn_egg` (four iron ingots, four redstone, one copper ingot)
+in the Spawn Eggs creative tab. Using the egg creates a new robot with a fresh
+UUID and empty inventory; it does not capture, store or restore an existing
+robot. `/summon` remains supported.
 
 Then:
 
@@ -97,7 +104,7 @@ Windows:
 Output:
 
 ```text
-build/libs/swarmie-0.1.0.jar
+build/libs/swarmie-0.1.1-SNAPSHOT.jar
 ```
 
 Architecture, Adapter API, test strategy and extension boundaries:
@@ -156,7 +163,8 @@ Release assets include the JAR and its `.sha256`.
 
 ## Known limitations
 
-- No survival acquisition yet: OP `/summon` is the current entry point.
+- The unreleased spawn egg only creates a new robot; there is no item that
+  picks up, stores or recalls an existing robot.
 - GUI containers (chest/furnace/hopper/...) are not supported by the FakePlayer
   path; an API success is not confirmed container side effects.
 - Mining drops stay in the world; they are not auto-collected.

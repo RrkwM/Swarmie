@@ -27,6 +27,10 @@ English | [简体中文](Player-Guide-zh-CN)
 /summon swarmie:swarmie ~ ~ ~
 ```
 
+The unreleased `0.1.1-SNAPSHOT` build adds a craftable Swarmie Spawn Egg
+(4 iron ingots, 4 redstone, 1 copper ingot) in the Spawn Eggs tab. It creates a
+**new** robot; it does not capture or restore an existing one.
+
 Use the namespaced selector:
 
 ```text
@@ -46,7 +50,8 @@ All `/swarmie` commands require OP/permission level 2.
 
 ## Important limits
 
-- No survival acquisition yet.
+- The unreleased spawn egg creates new robots only; there is no capture/recall
+  item.
 - No GUI container support.
 - Mining drops are not auto-collected.
 - `inventory give` does not switch the selected slot; `use` uses the selected

@@ -14,11 +14,12 @@ English | [简体中文](test-matrix.zh-CN.md)
 | Contract has no Minecraft/Fabric imports | S | 23 source files checked |
 | Contract classes in final JAR | S | `dev/swarmie/contract/*.class` |
 | `:contract:test` | A | 7 passed |
-| Root `test` | A | 36 passed |
-| Total | A | **43 passed** |
+| Root `test` | A | 39 passed |
+| Total | A | **46 passed** |
 | No-cache test | A | `cleanTest test --no-build-cache` passed |
 | Offline build | S | `--offline build` passed |
-| Final JAR | S | 162,555 bytes, SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
+| 0.1.0 release JAR | S | 162,555 bytes, SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
+| Spawn egg item/model/recipe/advancement/lang data | A | 3 data-contract tests passed |
 
 Test classes:
 
@@ -33,6 +34,7 @@ InteractionRuntimeTest        5
 SwarmieRuntimeEventTest       4
 SwarmieRuntimeTest            5
 SensingTest                   3
+SwarmieSpawnEggDataTest       3
 ```
 
 ## 2. Real client
@@ -70,6 +72,10 @@ World: disposable `New World`, real integrated server.
 | Cancel unknown/terminal | C | `UNKNOWN`/`UNKNOWN_CORRELATION`; `ALREADY_TERMINAL` |
 | Localhost JSONL + Python | C | mine/fly/stop/duplicate/cancel/reconnect passed |
 | Idempotency TTL 600 s | A | terminal expires; QUEUED does not |
+| Spawn egg registration + asset/data load | C | log: `Swarmie spawn egg registered`; no model/recipe errors |
+| Spawn egg given + creative search | C | `Gave 1 [Swarmie Spawn Egg]`; search `swarmie` returned the item |
+| Recipe unlock / auto-fill / craft | C | `Unlocked 1 recipe(s)`; recipe book filled the 3×3 grid; output crafted |
+| Right-click spawn | C | new `ROBOT_LOADED` `ff69dd53…`; inventory `empty` |
 | Event-ring live overflow | U | not filled to 1024; small-capacity JUnit |
 | Batch live submission | U | JUnit covers limits/per-item semantics; no live batch command |
 | Second-client sync | U | not tested |
@@ -100,7 +106,11 @@ Achieved:
 - bounded inbox, idempotency/conflict/backpressure/batch unit semantics;
 - Runtime command events and correlation;
 - real client lifecycle/removal/interruption/Adapter submit/Python;
-- stone placement and inventory consumption.
+- stone placement and inventory consumption;
+- spawn egg item, model, recipe, advancement and lang data (unit-checked);
+- real client: egg given and found in creative search; recipe unlocked and
+  crafted from a 3×3 grid through the recipe book; right-click spawned a new
+  robot with an empty inventory.
 
 Not claimed:
 

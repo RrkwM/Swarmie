@@ -2,8 +2,8 @@ English | [简体中文](developer-guide.zh-CN.md)
 
 # Developer Guide
 
-> Swarmie `0.1.0` / Adapter contract `0.1`. This is a pre-1.0 project; the
-> public contract is not yet stable.
+> Swarmie `0.1.1-SNAPSHOT` / Adapter contract `0.1`. This is a pre-1.0 project;
+> the public contract is not yet stable.
 
 ## 1. Stack
 
@@ -26,7 +26,7 @@ contract/                        pure Java contract subproject
   src/test/java/dev/swarmie/contract/
 
 src/main/java/dev/swarmie/
-  SwarmieMod.java                entry point, EntityType, Fabric events
+  SwarmieMod.java                entry point, EntityType, spawn egg, Fabric events
   SwarmieEntity.java             real Entity body
   SwarmieFlightController.java   velocity control
   runtime/                       FIFO and command state machine
@@ -76,7 +76,7 @@ Optional quick test world:
 Output:
 
 ```text
-build/libs/swarmie-0.1.0.jar
+build/libs/swarmie-0.1.1-SNAPSHOT.jar
 ```
 
 ## 4. Layers
@@ -189,13 +189,14 @@ Details:
 ./gradlew test
 ```
 
-Current baseline: 43 JUnit tests.
+Current baseline: 46 JUnit tests.
 
 - `contract/`: contract, batch, cancel;
 - `adapter/event`: event ring and bus;
 - `adapter/io`: capacity, budget, idempotency, conflicts, concurrency;
 - `adapter/registry`: lifecycle states and dimension changes;
 - `runtime`: FIFO, cancellation, unload interruption, events;
+- `item`: spawn-egg item definition, model, recipe, advancement and lang data;
 - interaction/sensing/flight: non-regression.
 
 Do not substitute unit tests for a real-client check. Evidence classes and

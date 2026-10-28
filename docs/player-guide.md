@@ -2,8 +2,9 @@ English | [简体中文](player-guide.zh-CN.md)
 
 # Player Guide
 
-> Applies to **Swarmie 0.1.0**. This is an administrator/developer preview, not a
-> complete survival gameplay implementation.
+> Applies to **Swarmie 0.1.0** (latest release) and the unreleased
+> `0.1.1-SNAPSHOT` development build. This is an administrator/developer
+> preview, not a complete survival gameplay implementation.
 
 ## 1. Requirements
 
@@ -40,14 +41,25 @@ Compare it with the SHA-256 published on the Release page.
 
 ## 3. How to get a robot
 
-**0.1.0 has no crafting recipe, item, or spawn egg.** This is the most important
-current limitation.
+### 0.1.0 release
 
-An OP/permission-level-2 player must use:
+The 0.1.0 release has no robot item or crafting recipe. An
+OP/permission-level-2 player must use:
 
 ```mcfunction
 /summon swarmie:swarmie ~ ~ ~
 ```
+
+### Unreleased 0.1.1-SNAPSHOT (main)
+
+The unreleased `0.1.1-SNAPSHOT` build adds a craftable spawn egg:
+
+| Item | Recipe | Notes |
+|---|---|---|
+| Swarmie Spawn Egg (`swarmie:swarmie_spawn_egg`) | Shaped: 4 iron ingots, 4 redstone, 1 copper ingot | Spawn Eggs creative tab; creates a **new** robot with a fresh UUID and empty 9-slot inventory |
+
+Using the egg never captures, stores or restores an existing robot; it always
+creates a new one. `/summon` remains supported.
 
 Find loaded robots:
 
@@ -177,7 +189,7 @@ operations.
 |---|---|
 | No Swarmie at startup | Check Java 25, Fabric Loader/API, and the JAR in `mods/` |
 | `/swarmie` says no permission | Requires OP/permission level 2 |
-| Robot not found | Summon it and use `@e[type=swarmie:swarmie]` |
+| Robot not found | Summon it or use the spawn egg, and use `@e[type=swarmie:swarmie]` |
 | `MINE_BLOCK FAILED (target is air)` | Choose a solid block |
 | `target is outside interaction range` | Move within 6 blocks |
 | `UNLOADED_CHUNK` | Load the target chunk first |
@@ -186,7 +198,8 @@ operations.
 
 ## 7. Current limitations
 
-- No survival acquisition (recipe/item/spawn egg) yet;
+- The unreleased spawn egg only creates new robots; there is no item that picks
+  up, stores or recalls an existing robot;
 - no AI, pathfinding, obstacle avoidance or task orchestration;
 - no GUI-container support;
 - no remote/public network; localhost JSONL is developer-only;

@@ -2,7 +2,7 @@
 
 # Developer Guide
 
-> Swarmie `0.1.0` / Adapter contract `0.1`。这是 pre-1.0 项目，公共契约尚未稳定。
+> Swarmie `0.1.1-SNAPSHOT` / Adapter contract `0.1`。这是 pre-1.0 项目，公共契约尚未稳定。
 
 ## 1. 技术栈
 
@@ -25,7 +25,7 @@ contract/                        纯 Java 契约子项目
   src/test/java/dev/swarmie/contract/
 
 src/main/java/dev/swarmie/
-  SwarmieMod.java                入口、EntityType、Fabric 事件
+  SwarmieMod.java                入口、EntityType、刷怪蛋、Fabric 事件
   SwarmieEntity.java             真实 Entity 身体
   SwarmieFlightController.java   速度控制
   runtime/                       FIFO、命令状态机
@@ -74,7 +74,7 @@ Windows：
 产物：
 
 ```text
-build/libs/swarmie-0.1.0.jar
+build/libs/swarmie-0.1.1-SNAPSHOT.jar
 ```
 
 ## 4. 分层架构
@@ -183,7 +183,7 @@ CancelAck ack = SwarmieAdapter.cancel(robot, "my-correlation-id");
 ./gradlew test
 ```
 
-当前基线：43 项 JUnit。
+当前基线：46 项 JUnit。
 
 测试分布：
 
@@ -192,6 +192,7 @@ CancelAck ack = SwarmieAdapter.cancel(robot, "my-correlation-id");
 - `adapter/io`：入站容量/预算/幂等/冲突/并发；
 - `adapter/registry`：生命周期三态、维度切换；
 - `runtime`：FIFO、取消、卸载中断、事件；
+- `item`：刷怪蛋物品定义、模型、配方、进度和语言数据契约；
 - `interaction`、`sensing`、`flight`：既有能力非回归。
 
 不要用 JUnit 通过替代真实客户端验证。证据分层和未验证项见

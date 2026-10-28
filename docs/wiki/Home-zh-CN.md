@@ -4,7 +4,7 @@
 
 面向 **Minecraft 26.3 / Fabric** 的可编程悬浮机器人。
 
-- 当前版本：**0.1.0**（pre-1.0）
+- 当前版本：**0.1.0**（pre-1.0）；`main` 为 `0.1.1-SNAPSHOT`
 - 许可证：MIT
 - 仓库：https://github.com/RrkwM/Swarmie
 - Releases：https://github.com/RrkwM/Swarmie/releases
@@ -22,8 +22,9 @@ Swarmie 提供真实 Minecraft `Entity`、服务端权威飞行、9 槽库存、
 每机器人 Runtime 命令、世界查询、本地传感器，以及独立于 Minecraft 的
 Adapter 契约。
 
-0.1.0 **没有合成/物品/刷怪蛋获取方式**，是管理员/开发者预览，使用
-`/summon swarmie:swarmie` 创建机器人。
+0.1.0 没有机器人合成物品；`main` 为未发布的 0.1.1 新增可合成刷怪蛋。0.1.0 是
+管理员/开发者预览，使用 `/summon swarmie:swarmie` 创建机器人。刷怪蛋只会创建
+新机器人，不会捕获或召回已有机器人。
 
 没有 AI、寻路、GUI 容器、远程网络服务或多机器人调度器。
 

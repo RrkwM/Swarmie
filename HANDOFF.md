@@ -57,11 +57,17 @@ $env:GRADLE_USER_HOME = (Resolve-Path .\tools\gradle-home).Path
 当前验证结果：
 
 ```text
-43 JUnit tests passed
+46 JUnit tests passed
 BUILD SUCCESSFUL
 ```
 
 产物：
+
+```text
+build/libs/swarmie-0.1.1-SNAPSHOT.jar
+```
+
+0.1.0 发布产物：
 
 ```text
 build/libs/swarmie-0.1.0.jar
@@ -126,7 +132,7 @@ python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
 ## 5. 已验证
 
 - `:contract` 独立 classpath / boundary check；
-- 43 项 JUnit；
+- 46 项 JUnit（含刷怪蛋物品/模型/配方/进度/语言数据契约 3 项）；
 - 主 JAR 包含契约类；
 - 真实客户端启动/进入世界；
 - 加载/卸载/重载、UUID 不变；
@@ -137,6 +143,8 @@ python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
 - active cancel、unknown/terminal cancel；
 - Python mine/fly/stop/duplicate/cancel/reconnect；
 - 石头 `useItemOn` 放置、库存消耗；
+- 真实客户端：刷怪蛋可获取/创造搜索可见、配方书自动填充 3×3 并合成、
+  右键生成新机器人（空库存）；
 - 随机 `serverEpoch` 会话变化。
 
 ## 6. 未验证/已知限制

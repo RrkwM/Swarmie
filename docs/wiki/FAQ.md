@@ -58,8 +58,11 @@ intentional; see the lifecycle docs.
 Only through the default-off, loopback-only JSONL development transport. It has
 no authentication/TLS and is not a remote or multi-user service.
 
-## Why is there no recipe/item?
+## Why is there no recipe/item in 0.1.0?
 
-0.1.0 is an admin/developer preview. Survival acquisition is not implemented
-yet; `/summon` is the current entry point.
+0.1.0 is an admin/developer preview and had no survival acquisition; `/summon`
+is its entry point. The unreleased `0.1.1-SNAPSHOT` build on `main` adds a
+craftable Swarmie Spawn Egg (4 iron ingots, 4 redstone, 1 copper ingot). It
+creates a new robot with a fresh UUID and empty inventory; it does not capture
+or restore an existing robot.
 

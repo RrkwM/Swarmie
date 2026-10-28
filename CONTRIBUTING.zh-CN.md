@@ -27,7 +27,7 @@ Windows：
 .\gradlew.bat runClient
 ```
 
-产物：`build/libs/swarmie-0.1.0.jar`。
+产物：`build/libs/swarmie-0.1.1-SNAPSHOT.jar`。
 
 ## 项目边界
 
@@ -42,7 +42,7 @@ Windows：
 ./gradlew test
 ```
 
-当前基线：43 项 JUnit。测试矩阵在 `docs/test-matrix.md`，区分自动、真实客户端、
+当前基线：46 项 JUnit。测试矩阵在 `docs/test-matrix.md`，区分自动、真实客户端、
 静态和未验证证据。不要把 JUnit 通过说成真实客户端通过。
 
 ## 代码与审查

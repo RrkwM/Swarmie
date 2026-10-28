@@ -14,11 +14,12 @@
 | 契约无 Minecraft/Fabric import | S | boundary check: 23 files |
 | 契约包被最终 JAR 收录 | S | `dev/swarmie/contract/*.class` |
 | `:contract:test` | A | 7 passed |
-| 根 `test` | A | 36 passed |
-| 合计 | A | **43 passed** |
+| 根 `test` | A | 39 passed |
+| 合计 | A | **46 passed** |
 | 无缓存测试 | A | `cleanTest test --no-build-cache` 通过 |
 | 离线构建 | S | `--offline build` 通过 |
-| 最终 JAR | S | 162,555 bytes，SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
+| 0.1.0 Release JAR | S | 162,555 bytes，SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
+| 刷怪蛋物品/模型/配方/进度/语言数据 | A | 3 项数据契约测试通过 |
 
 测试类：
 
@@ -33,6 +34,7 @@ InteractionRuntimeTest        5
 SwarmieRuntimeEventTest       4
 SwarmieRuntimeTest            5
 SensingTest                   3
+SwarmieSpawnEggDataTest       3
 ```
 
 ## 2. 真实客户端
@@ -70,6 +72,10 @@ SensingTest                   3
 | cancel unknown/terminal | C | `UNKNOWN/UNKNOWN_CORRELATION`；`ALREADY_TERMINAL` |
 | localhost JSONL + Python | C | mine/fly/stop/duplicate/cancel/reconnect 实际通过 |
 | 幂等 TTL 600s | A | 终态过期后可重新接受；QUEUED 不过期 |
+| 刷怪蛋注册 + 资源/数据加载 | C | 日志 `Swarmie spawn egg registered`；无模型/配方错误 |
+| 刷怪蛋获取 + 创造搜索 | C | `Gave 1 [Swarmie Spawn Egg]`；搜索 `swarmie` 返回该物品 |
+| 配方解锁/自动填充/合成 | C | `Unlocked 1 recipe(s)`；配方书填充 3×3 网格；输出合成 |
+| 右键生成 | C | 新 `ROBOT_LOADED` `ff69dd53…`；库存 `empty` |
 | 事件环实机溢出 | U | 未填满 1024；小容量 JUnit 已验证 |
 | 批量实机提交 | U | JUnit 已覆盖 batch 上限/逐条语义；无实机 batch 命令 |
 | 第二客户端同步 | U | 未测试 |
@@ -98,7 +104,10 @@ SensingTest                   3
 - 注册表跨卸载存续、维度切换不误删、事件环可检测遗漏；
 - 入站幂等/冲突/反压/批量的自动化语义；
 - Runtime 命令事件与 correlation 贯通；
-- 真实客户端加载/卸载/维度/移除/命令中断/Adapter submit 验证。
+- 真实客户端加载/卸载/维度/移除/命令中断/Adapter submit 验证；
+- 刷怪蛋物品、模型、配方、进度和语言数据（仅单元检查）；
+- 真实客户端：刷怪蛋可获取并在创造搜索中找到；配方已解锁并通过配方书
+  在 3×3 网格中合成；右键生成新机器人且库存为空。
 
 不能宣称：
 

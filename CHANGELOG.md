@@ -8,6 +8,19 @@ All notable changes to Swarmie are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Craftable `swarmie:swarmie_spawn_egg` item (unreleased `0.1.1` line):
+  - shaped recipe: four iron ingots, four redstone and one copper ingot;
+  - shown in the vanilla Spawn Eggs creative tab;
+  - using it creates a **new** robot with a fresh UUID and an empty nine-slot
+    inventory; it does not capture, recall or restore an existing robot;
+  - `/summon swarmie:swarmie` is unchanged.
+- Item definition, model, 16×16 texture, `en_us`/`zh_cn` names and a
+  recipe-unlock advancement.
+- Data-contract JUnit coverage for the item definition, model, recipe,
+  advancement and lang keys (46 tests total).
+
 ### Documentation
 
 - Split the public README into a short landing page.
@@ -18,6 +31,19 @@ All notable changes to Swarmie are documented here. The format follows
 - Added English-default bilingual documentation; Simplified Chinese versions use
   `.zh-CN` files and `-zh-CN` Wiki pages.
 - Anonymized maintainer-local absolute paths in the public tree.
+
+### Verified
+
+- 46 JUnit tests (`test --rerun-tasks`).
+- Real client (Minecraft 26.3, disposable world):
+  - the egg is given as `Swarmie Spawn Egg` and is found in creative search;
+  - `/recipe give` unlocks the recipe; the recipe book auto-fills the 3×3
+    iron/redstone/copper grid and the output crafts the egg;
+  - right-clicking the egg logs a fresh `ROBOT_LOADED`, and
+    `/swarmie inventory show` reports an empty inventory;
+  - creative mode does not consume the egg (vanilla spawn-egg behavior).
+- Still unverified: dedicated-server startup, second-client sync and the
+  remaining collision boundaries.
 
 ## [0.1.0] - 2026-10-28
 

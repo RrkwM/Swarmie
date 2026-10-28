@@ -4,7 +4,7 @@ English | [简体中文](Home-zh-CN)
 
 Programmable hovering robots for **Minecraft 26.3 / Fabric**.
 
-- Current release: **0.1.0** (pre-1.0)
+- Current release: **0.1.0** (pre-1.0); `main` is `0.1.1-SNAPSHOT`
 - License: MIT
 - Repository: https://github.com/RrkwM/Swarmie
 - Releases: https://github.com/RrkwM/Swarmie/releases
@@ -22,8 +22,10 @@ Swarmie provides a real Minecraft `Entity` with server-authoritative flight, a
 9-slot inventory, native interaction, per-robot Runtime commands, world query,
 local sensing, and a Minecraft-independent Adapter contract.
 
-There is **no crafting/item/spawn-egg acquisition yet**. Current 0.1.0 is an
-admin/developer preview: summon a robot with `/summon swarmie:swarmie`.
+0.1.0 has no robot item; `main` adds a craftable spawn egg for the unreleased
+0.1.1. Current 0.1.0 is an admin/developer preview: summon a robot with
+`/summon swarmie:swarmie`. The spawn egg creates a new robot only; it does not
+capture or recall an existing one.
 
 There is no AI, pathfinding, GUI-container support, remote network service, or
 multi-robot scheduler.
