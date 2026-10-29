@@ -13,8 +13,14 @@
 > hover and all other action candidates remain unimplemented. Capability
 > discovery is not implemented in this slice: `state` and velocity setpoints are
 > available for loaded robots, and clients must not interpret the absence of a
-> capability object as proof of unsupported behavior yet. Verification is
-> unit/mock based; no in-game flight was performed for this slice.
+> capability object as proof of unsupported behavior yet.
+>
+> **Runtime validation (2026-10-29):** state, velocity setpoints, clamping,
+> replacement/clear, collision, action coexistence, legacy ownership and
+> restart were exercised against the real Minecraft 26.3 integrated server.
+> Lifecycle cases (unload, removal, dimension change) and independent yaw/pitch
+> comparison remain unverified. See
+> [api-v1-runtime-validation.md](api-v1-runtime-validation.md).
 
 ## 0. How to read this document
 
@@ -1026,16 +1032,16 @@ Status meanings:
 |---|---|---|
 | Stable UUID and exact-ID lookup | **SUPPORTED** | `RobotId` is a UUID; SDK `client.robot()` matches exact UUID and raises `RobotNotFound` (`tools/sdk/swarmie/client.py:172-190`); `test_exact_robot_selection_never_defaults_to_first` (`tools/sdk/tests/test_client.py:69`). |
 | Robot lifecycle and dimension metadata | **SUPPORTED** | `RobotDescriptor` has lifecycle/dimension/lastUpdatedTick (`contract/src/main/java/dev/swarmie/contract/RobotDescriptor.java:6-12`); registry load/unload/remove (`src/main/java/dev/swarmie/adapter/registry/RobotRegistry.java`); lifecycle tests in `RobotRegistryTest.java` and SDK `test_robot_info_is_structured`. |
-| Robot live position/velocity/orientation | **SUPPORTED** for `state.self` | Public JSONL `state` op + SDK `Robot.state()`; server snapshot at end tick (`AdapterSession.onEndTick`); orientation is read-only. Unit/mock tested, not in-game verified. |
+| Robot live position/velocity/orientation | **SUPPORTED** for `state.self` | Public JSONL `state` op + SDK `Robot.state()`; server snapshot at end tick (`AdapterSession.onEndTick`); orientation is read-only. Unit/mock and real integrated-server validation; yaw/pitch independent comparison remains unverified. |
 | Capability discovery and version | **PARTIAL** | `RobotDescriptor.supportedCommands` and global `ContractVersion` exist (`RobotDescriptor.java:6-12`, `ContractVersion.java:4-5`); `AdapterSession` advertises all four `CommandType`s (`AdapterSession.java:59`). No per-robot capability version, no state/setpoint capability names. |
-| `state.self` | **SUPPORTED** | `RobotState`, volatile `RobotStateStore`, JSONL `state` op, SDK `Robot.state()`; tests `RobotStateStoreTest`, `TransportCodecTest`, SDK `test_state_*`. No in-game verification. |
+| `state.self` | **SUPPORTED** | `RobotState`, volatile `RobotStateStore`, JSONL `state` op, SDK `Robot.state()`; tests `RobotStateStoreTest`, `TransportCodecTest`, SDK `test_state_*`. Real integrated-server validation: 2026-10-29. |
 | `state.inventory` | **MISSING** | `SwarmieInventory` has 9 slots and selected slot (`SwarmieInventory.java:17-23,100-114`), but it is only exposed by debug `swarmie inventory show`, not Adapter/JSONL. |
 | `state.block` | **MISSING** | `WorldQuery.queryBlock` and `BlockQueryResult` exist (`WorldQuery.java`, `DefaultWorldQuery.java:31-56`); no Adapter/JSONL operation. |
 | `state.region` | **MISSING** | `queryRegion` exists with 4096 cap and `complete`/`unavailable` (`DefaultWorldQuery.java:59-93`); no public operation. |
 | `state.entities` | **MISSING** | `queryEntities` exists with 256/65536 limits and `complete`/`truncated` (`DefaultWorldQuery.java:95-148`); no public operation. |
 | `state.sensor` | **MISSING** | `LocalSensor`/`SensorObservation` and `DefaultLocalSensor` exist (`DefaultLocalSensor.java:60-153`); no public operation; line-of-sight returns `UNSUPPORTED` (`DefaultLocalSensor.java:56-61`). |
 | Observation completeness/status model | **PARTIAL** | Internal `QueryStatus`, `RegionQueryResult.complete`, `EntityQueryResult.complete/truncated`, `SensorObservation.incomplete/truncated` exist; not exposed. |
-| Continuous velocity setpoint | **SUPPORTED** | `VelocitySetpoints` + `AdapterSession.requestVelocitySetpoint` + JSONL `setpoint` op + SDK `Robot.set_velocity`; applied before `Runtime`/inbound dispatch on the server tick. Clamping, replacement and clear are tested. No in-game verification. |
+| Continuous velocity setpoint | **SUPPORTED** | `VelocitySetpoints` + `AdapterSession.requestVelocitySetpoint` + JSONL `setpoint` op + SDK `Robot.set_velocity`; applied before `Runtime`/inbound dispatch on the server tick. Clamping, replacement, clear, collision, action coexistence and restart were validated in a real integrated server (2026-10-29). |
 | Orientation setpoint | **MISSING** | No controller or transport; entity yaw/pitch are inherited but never controlled. |
 | Latest-wins/revision/clear semantics | **SUPPORTED** | `VelocitySetpoints` revision counter and last-writer-wins map; `clear` is a setpoint operation, not the legacy `STOP` action. Unit tested. |
 | `mine_block` | **SUPPORTED** (with limits) | `CommandSpec.MineBlock` (`CommandSpec.java:36-46`), `MineBlockCommand`, `InteractionActor.mineBlock` (`InteractionActor.java:34-50`), validation (`InteractionActor.java:92-125`), `InteractionRuntimeTest` mine tests, live matrix in `docs/adapter-command-specs.md`. Native return is not independent side-effect confirmation. |

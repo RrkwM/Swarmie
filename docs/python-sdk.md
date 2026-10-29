@@ -261,7 +261,8 @@ ack-versus-result, timeouts, cancel and terminal states, duplicates, rejected
 submissions, connection close, server errors, same-epoch reconnect, epoch
 change, event gaps, per-robot isolation, live-state parsing, setpoint
 acceptance/replacement/clear and setpoint rejection. It does **not** replace a
-real Minecraft integration test.
+real Minecraft integration test. A separate real integrated-server run is
+recorded in [`api-v1-runtime-validation.md`](api-v1-runtime-validation.md).
 
 ## 12. Limits
 
@@ -275,6 +276,7 @@ real Minecraft integration test.
   channel (`MOTION_CHANNEL_BUSY`);
 - synchronous, single-threaded API; no asyncio/background worker;
 - no cross-process persistence: command/event history is per server session;
-- no in-game verification is claimed for this slice; state/setpoint tests are
-  unit/mock based;
+- no dedicated-server, second-client or multiplayer verification; in-game
+  validation is limited to one real Minecraft 26.3 integrated-server session
+  (see `docs/api-v1-runtime-validation.md`);
 - Python SDK version `0.1.0` and Adapter contract `0.1` are pre-stable.
