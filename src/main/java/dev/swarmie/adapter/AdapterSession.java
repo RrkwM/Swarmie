@@ -164,7 +164,7 @@ public final class AdapterSession {
         this.loaded.put(id.value(), robot);
         robot.runtime().setListener(new RuntimeListener(id, this));
         this.registry.load(id, dimensionId(level), toDto(robot.position()), CAPABILITIES, this.serverTick);
-        this.velocitySetpoints.forget(id.value());
+        this.velocitySetpoints.forget(id.value(), robot);
         this.states.put(toState(robot));
 
         String detail = dimensionChange ? "dimension change complete" : "";
@@ -182,7 +182,7 @@ public final class AdapterSession {
             return;
         }
         this.loaded.remove(id.value());
-        this.velocitySetpoints.forget(id.value());
+        this.velocitySetpoints.forget(id.value(), robot);
         this.states.remove(id);
         robot.onAdapterSessionEnd("robot unloaded");
         robot.runtime().setListener(null);
@@ -199,7 +199,7 @@ public final class AdapterSession {
         RobotId id = new RobotId(robot.getUUID());
         if (reason == Entity.RemovalReason.CHANGED_DIMENSION) {
             this.loaded.remove(id.value());
-            this.velocitySetpoints.forget(id.value());
+            this.velocitySetpoints.forget(id.value(), robot);
             this.states.remove(id);
             robot.onAdapterSessionEnd("dimension change");
             robot.runtime().setListener(null);
@@ -215,7 +215,7 @@ public final class AdapterSession {
         }
 
         this.loaded.remove(id.value());
-        this.velocitySetpoints.forget(id.value());
+        this.velocitySetpoints.forget(id.value(), robot);
         this.states.remove(id);
         robot.onAdapterSessionEnd("owner removed");
         robot.runtime().setListener(null);

@@ -5,6 +5,7 @@ import dev.swarmie.contract.ErrorCode;
 import dev.swarmie.contract.RobotId;
 import dev.swarmie.contract.SetpointAck;
 import dev.swarmie.contract.Vec3Dto;
+import dev.swarmie.runtime.FlightTarget;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -126,7 +127,20 @@ final class VelocitySetpoints {
         this.targets.remove(robotId);
         this.revisions.remove(robotId);
         this.clearPending.remove(robotId);
-        this.legacyMotion.remove(robotId);    }
+        this.legacyMotion.remove(robotId);
+    }
+
+    /**
+     * Forgets setpoint state and stops the controller so a reused entity cannot
+     * resume the old target after reload. Lifecycle cleanup must not leave the
+     * flight controller's desired velocity behind.
+     */
+    synchronized void forget(UUID robotId, FlightTarget target) {
+        forget(robotId);
+        if (target != null) {
+            target.stopFlight();
+        }
+    }
 
     private static double length(Vec3Dto vector) {
         return Math.sqrt(vector.x() * vector.x() + vector.y() * vector.y() + vector.z() * vector.z());

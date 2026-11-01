@@ -4,6 +4,8 @@ import dev.swarmie.contract.ErrorCode;
 import dev.swarmie.contract.RobotId;
 import dev.swarmie.contract.SetpointAck;
 import dev.swarmie.contract.Vec3Dto;
+import dev.swarmie.runtime.FlightTarget;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -118,5 +120,40 @@ class VelocitySetpointsTest {
         assertNull(frame.velocity());
         assertEquals(0, setpoints.revision(robot));
         assertTrue(setpoints.claimLegacy(robot));
+    }
+
+    @Test
+    void forgetStopsLifecycleMotion() {
+        VelocitySetpoints setpoints = new VelocitySetpoints();
+        setpoints.set(robot, new Vec3Dto(0.1, 0, 0), 1);
+        FakeTarget target = new FakeTarget();
+
+        setpoints.forget(robot.value(), target);
+
+        assertTrue(target.stopped, "lifecycle cleanup must stop the old controller target");
+        assertNull(setpoints.frame(robot.value()).velocity());
+    }
+
+    private static final class FakeTarget implements FlightTarget {
+        private boolean stopped;
+
+        @Override
+        public void setDesiredVelocity(Vec3 velocity) {
+        }
+
+        @Override
+        public void stopFlight() {
+            this.stopped = true;
+        }
+
+        @Override
+        public Vec3 getVelocity() {
+            return Vec3.ZERO;
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return false;
+        }
     }
 }

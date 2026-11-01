@@ -277,6 +277,6 @@ recorded in [`api-v1-runtime-validation.md`](api-v1-runtime-validation.md).
 - synchronous, single-threaded API; no asyncio/background worker;
 - no cross-process persistence: command/event history is per server session;
 - no dedicated-server, second-client or multiplayer verification; in-game
-  validation is limited to one real Minecraft 26.3 integrated-server session
-  (see `docs/api-v1-runtime-validation.md`);
+  validation is limited to real Minecraft 26.3 integrated-server sessions for
+  state/setpoints and lifecycle (see `docs/api-v1-runtime-validation.md`);
 - Python SDK version `0.1.0` and Adapter contract `0.1` are pre-stable.

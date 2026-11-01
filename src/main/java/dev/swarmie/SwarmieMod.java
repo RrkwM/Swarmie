@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import dev.swarmie.adapter.SwarmieAdapter;
 import dev.swarmie.command.SwarmieCommands;
 import dev.swarmie.contract.ContractVersion;
+import dev.swarmie.test.LifecycleTestHarness;
 
 /**
  * Common Swarmie entry point.
@@ -86,6 +87,7 @@ public final class SwarmieMod implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 SwarmieCommands.register(dispatcher));
         SwarmieAdapter.initialize();
+        LifecycleTestHarness.initialize();
 
         LOGGER.info("Swarmie initialized; registered entity type swarmie:swarmie");
         LOGGER.info("Swarmie spawn egg registered: swarmie:swarmie_spawn_egg");

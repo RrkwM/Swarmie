@@ -15,11 +15,14 @@
 > available for loaded robots, and clients must not interpret the absence of a
 > capability object as proof of unsupported behavior yet.
 >
-> **Runtime validation (2026-10-29):** state, velocity setpoints, clamping,
-> replacement/clear, collision, action coexistence, legacy ownership and
-> restart were exercised against the real Minecraft 26.3 integrated server.
-> Lifecycle cases (unload, removal, dimension change) and independent yaw/pitch
-> comparison remain unverified. See
+> **Runtime validation (2026-10-29, extended 2026-11-02):** state, velocity
+> setpoints, clamping, replacement/clear, collision, action coexistence, legacy
+> ownership and restart were exercised against the real Minecraft 26.3
+> integrated server. Chunk unload/reload, permanent removal and dimension change
+> were validated on 2026-11-02 with the public JSONL/SDK path and a default-off
+> lifecycle harness. A lifecycle cleanup defect (old controller target resumed
+> after reload) was found and fixed. The dimension transition observation window
+> and independent yaw/pitch comparison remain unverified. See
 > [api-v1-runtime-validation.md](api-v1-runtime-validation.md).
 
 ## 0. How to read this document

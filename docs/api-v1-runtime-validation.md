@@ -1,11 +1,13 @@
-# API v1 Runtime Validation — State and Velocity Setpoints
+# API v1 Runtime Validation — State, Velocity Setpoints and Lifecycle
 
-> Validation date: 2026-10-29
-> Implementation under test: `9f8d95e Add API v1 self-state and velocity setpoints`
+> Validation dates: 2026-10-29 (state/setpoint slice), 2026-11-02 (lifecycle)
+> Implementation under test: `9f8d95e` plus the 2026-11-02 lifecycle fix
 > Branch: `feature/api-v1-state-motion`
 > Result: real integrated-server validation completed for state, setpoints,
-> collision, action coexistence, legacy ownership and restart. No production
-> defect was demonstrated; no production code was changed by this validation.
+> collision, action coexistence, legacy ownership, restart, chunk unload/reload,
+> permanent removal and dimension change. One lifecycle defect was found and
+> fixed. Independent yaw/pitch comparison and the dimension transition window
+> remain unverified.
 
 ## 1. Environment
 
@@ -32,10 +34,11 @@ Local JSONL transport listening on 127.0.0.1:25580
 Adapter contract loaded: v0.1
 ```
 
-The test used the public JSONL/SDK path. Minecraft chat/command injection from
-the DSH session did not reliably reach the game window, so no commands were used
-to spawn, kill or teleport robots. This is an environment/input limitation, not
-an API failure; it is why the lifecycle cases in §5 are marked BLOCKED.
+The 2026-10-29 run used the public JSONL/SDK path. GUI chat/command injection
+from the DSH session did not reliably reach the game window, so that run did not
+spawn, kill or teleport robots. The 2026-11-02 lifecycle run bypassed that input
+limitation with the default-off file harness described in §10.1, while all
+acceptance observations still used the public JSONL/SDK path.
 
 ## 2. Result summary
 
@@ -63,9 +66,14 @@ an API failure; it is why the lifecycle cases in §5 are marked BLOCKED.
 | 20 | Server restart / new epoch | **PASS** | epoch `837777350786657310` → `7257942376109456668`; 15 robots reloaded |
 | 21 | Active setpoint does not survive restart | **PASS** | pre-restart target `0.05`; post-restart state velocity `~0` |
 | 22 | 3D curve example against real server | **PASS (example behavior)** | exit `0`; repeated state/setpoint updates; final clear accepted |
-| 23 | Unloaded / removed / dimension-change lifecycle | **BLOCKED** | no reliable chat/command injection to trigger safely |
-| 24 | Independent yaw/pitch equality | **UNVERIFIED** | values read from server entity; no independent external comparator |
-| 25 | Temporarily unavailable state | **UNVERIFIED** | not reproducible without lifecycle control |
+| 23 | Chunk unload/reload | **PASS — real runtime** | §10.2; `ROBOT_UNLOADED`/`ROBOT_LOADED`; state/control rejected while unloaded |
+| 24 | Permanent removal | **PASS — real runtime** | §10.3; registry `REMOVED`; `ROBOT_REMOVED`; queued actions `INTERRUPTED` |
+| 25 | Dimension change | **PASS — real runtime** | §10.4; same UUID; unload/dimension-changed/load sequence; actions interrupted |
+| 26 | Setpoint clearing across lifecycle | **PASS — real runtime** | §10.2/§10.4; old target does not resume; fixed defect §10.6 |
+| 27 | Same-epoch reconnect/cursor | **PASS — real runtime** | §10.5; `resumed=True`, `missed=False`, cursor advances |
+| 28 | Independent yaw/pitch equality | **UNVERIFIED** | values read from server entity; no independent external comparator |
+| 29 | Temporarily unavailable state | **UNVERIFIED** | not separately reproducible |
+| 30 | Dimension transition observation window | **UNVERIFIED** | target was loaded before external sampling; transition window not observed |
 
 ## 3. State evidence
 
@@ -248,7 +256,7 @@ and speed limits are uncompensated.
 
 ```text
 .\gradlew.bat test --offline --rerun-tasks
-main module: 50 passed, 0 failed
+main module: 51 passed, 0 failed
 contract module: 9 passed, 0 failed
 ```
 
@@ -276,34 +284,194 @@ errors=0 review_findings=0
 
 ### Manual/unverified
 
-No unload, removal, dimension-change, temporary-unavailability, or independent
-yaw/pitch comparison was completed. The in-game command input limitation
-prevented safe triggering of those cases. They remain BLOCKED/UNVERIFIED rather
-than inferred from unit tests.
+Independent yaw/pitch comparison, temporarily unavailable state, and the
+dimension transition observation window were not completed. The 2026-11-02
+lifecycle cases in §10 use the deterministic file harness and the public
+JSONL/SDK path; they are not inferred from unit tests.
 
 ## 8. Defects and code changes
 
-No production defect was demonstrated in this run. No production code, contract,
-protocol, SDK behavior or tests were changed in this validation iteration.
+One production defect was found and fixed on 2026-11-02:
 
-No regression test was added because there was no demonstrated defect. The
-existing unit/mock tests already cover the implemented semantics.
+- unloading a robot cleared setpoint storage but did not stop the
+  `SwarmieFlightController` desired velocity; the same entity object could
+  resume the old target after chunk reload;
+- fix: `VelocitySetpoints.forget(UUID, FlightTarget)` now clears setpoint state
+  and calls `stopFlight()`; `AdapterSession` uses it on load, unload, removal and
+  dimension change;
+- regression: `VelocitySetpointsTest.forgetStopsLifecycleMotion` asserts the
+  lifecycle reset stops the controller target.
+
+The prior state/setpoint slice had no demonstrated defect.
 
 ## 9. Remaining limitations and next step
 
-- The state endpoint is a tick-boundary snapshot, not a stream; this was
-  observed and matches the contract.
+- The state endpoint is a tick-boundary snapshot, not a stream.
 - `clear_velocity()` releases the target and allows deceleration; it is not
   braking-to-zero or position hold.
 - Setpoint and legacy motion are mutually exclusive; the documented
   `MOTION_CHANNEL_BUSY` behavior held in both directions.
-- Lifecycle cases (chunk unload, removal, dimension change, temporary
-  unavailability) still require a deterministic in-game harness or manual run
-  with reliable command input.
-- Independent yaw/pitch agreement was not measured.
-- No new API surface is justified by this validation.
+- The dimension transition window could not be sampled externally before the
+  destination loaded; this remains unverified.
+- Independent yaw/pitch agreement and temporarily unavailable state remain
+  unverified.
+- The lifecycle harness is development-only and file-driven; it is not a public
+  API and is disabled without its config file.
+- No new public API surface is justified by this validation.
 
-Recommended next step: add or execute a deterministic lifecycle test procedure
-that can spawn/kill/teleport robots via a reliable server-side test harness, then
-re-run the same public JSONL path for unload/removal/dimension-change. Do not
-expand the API before those lifecycle guarantees are evidenced.
+Recommended next step: extend the deterministic lifecycle harness with a
+transition-window sample (or a second observer client) and repeat the public
+JSONL checks for a second dimension pair. Do not expand the API before that
+evidence exists.
+
+## 10. Lifecycle validation — 2026-11-02
+
+### 10.1 Trigger harness
+
+The previous GUI input limitation was bypassed with a default-off, file-driven
+server harness:
+
+```text
+run/config/swarmie-lifecycle-test.json   {"enabled":true}
+run/swarmie-lifecycle-test/command.json  request
+run/swarmie-lifecycle-test/result.json   result
+```
+
+Commands used: `spawn`, `unload`, `reload`, `remove`, `dimension`, `status`,
+`cleanup`. The harness:
+
+- acts only on its own spawned robot unless an explicit UUID is supplied to
+  `cleanup`;
+- triggers unload by moving the **player** to the other dimension; the target
+  robot follows Minecraft's native chunk/entity unload path, rather than being
+  teleported or registry-edited;
+- reloads by moving the player back to the saved dimension/position;
+- removes with `Entity.discard()`;
+- dimensions with `Entity.teleport(TeleportTransition)` using
+  `PLACE_PORTAL_TICKET`, with the destination chunk preloaded;
+- restores player position, yaw/pitch, gravity, invulnerability and game mode on
+  `reload`/`cleanup`.
+
+The harness is disabled when the config file is absent. Its temporary config was
+removed after validation to restore the default-off state. A subsequent launch
+logged `Local JSONL transport disabled` and no lifecycle-harness enabled line.
+It adds no command or public API.
+
+### 10.2 Scenario A — chunk unload/reload
+
+Target `4b274b95-1f09-4a8f-96a9-6c07da1efb85`, epoch
+`3633995883926274801`, overworld.
+
+Before unload:
+
+```text
+tick 1449  position (-24.5, 72.0, 1.5)  velocity 0
+setpoint accepted revision 1, effective (0.1, 0, 0)
+tick ~1462 position (-23.38, 72.0, 1.5) velocity (0.1, 0, 0)
+```
+
+After `unload`:
+
+```text
+registry lifecycle=UNLOADED
+registry dimension=minecraft:overworld
+registry position=(-23.28, 72.0, 1.5)
+state -> RobotNotLoaded (ROBOT_NOT_LOADED)
+set_velocity -> RobotNotLoaded (ROBOT_NOT_LOADED)
+clear_velocity -> RobotNotLoaded (ROBOT_NOT_LOADED)
+MineBlock -> CommandRejected (ROBOT_NOT_LOADED)
+event 37 ROBOT_UNLOADED detail="chunk unload"
+```
+
+After `reload`:
+
+```text
+event 39 ROBOT_LOADED detail=""
+state tick 1470, same UUID, dimension overworld
+actual velocity 0.081 -> 0.043 -> 0.023 -> 0.012 -> 0.006 -> 0.003
+```
+
+The residual velocity is momentum after the fixed controller stop, not the old
+target; it decays without re-acceleration. A new setpoint was accepted at
+revision 1, moved the robot, and was cleared.
+
+### 10.3 Scenario B — permanent removal
+
+Target `5c17d867-698c-4602-8608-94b789d84ea2`, epoch
+`3633995883926274801`, overworld. An active `0.1` setpoint and six queued
+`MINE_BLOCK` actions were present before removal.
+
+```text
+remove -> Entity.discard()
+registry lifecycle=REMOVED
+state -> RobotNotLoaded (ROBOT_REMOVED)
+set_velocity -> RobotNotLoaded (ROBOT_REMOVED)
+clear_velocity -> RobotNotLoaded (ROBOT_REMOVED)
+MineBlock -> CommandRejected (ROBOT_REMOVED)
+actions: #0 FAILED (target air before removal), #1..#5 INTERRUPTED
+events 78 ROBOT_UNLOADED, 79 ROBOT_REMOVED detail="DISCARDED"
+```
+
+No ghost entity remained in the registry; the removed UUID resolves as
+`REMOVED`, not `LOADED` or `UNKNOWN`.
+
+### 10.4 Scenario C — dimension change
+
+Target `583ae16d-f18e-47f8-8668-b38b20c06a5e`, epoch
+`3633995883926274801`, overworld → nether. A `0.1` setpoint and three queued
+actions were active.
+
+```text
+events 16 ROBOT_UNLOADED detail="chunk unload"
+       17 ROBOT_DIMENSION_CHANGED detail="dimension change"
+       18 ROBOT_LOADED detail="dimension change complete"
+registry lifecycle=LOADED, dimension=minecraft:the_nether
+state same UUID, position (0.5, 64.5, 0.5), velocity 0
+actions: #0 FAILED (target air), #1/#2 INTERRUPTED
+new setpoint accepted revision 1 after transition
+```
+
+The old target did not migrate. The transition window itself was not observed
+externally before `ROBOT_LOADED`; that specific window remains UNVERIFIED.
+
+### 10.5 Scenario D — reconnect/cursor
+
+Same server epoch `3633995883926274801`:
+
+```text
+before disconnect: last_sequence 79, missed=False, gap=None
+spawn event while disconnected -> reconnect:
+  SessionInfo(epoch=same, resumed=True, missed=False, gap=None)
+  last_sequence 80
+remove event while disconnected -> reconnect:
+  SessionInfo(epoch=same, resumed=True, missed=False, gap=None)
+  last_sequence 82
+```
+
+The client cursor advanced across lifecycle events without a gap. No new epoch
+was created in this scenario; the 2026-10-29 restart result remains the separate
+new-epoch evidence. No side-effect action was replayed to test events.
+
+### 10.6 Defect before/after — reload must not resume the old target
+
+The first unload/reload run (before the fix) had an active `0.1` setpoint. After
+reload, the same entity object still had the controller's old desired velocity:
+
+```text
+state velocity = (0.081, 0, 0)
+position continued moving
+new setpoint revision = 1 only after the old target had resumed
+```
+
+This violated the contract's “reload must not resume the old target.” The fix
+in §8 stops the controller during lifecycle cleanup. After the fix, the same
+scenario produced:
+
+```text
+state velocity = (0.081, 0, 0) immediately after reload
+then 0.043 -> 0.023 -> 0.012 -> 0.006 -> 0.003
+new setpoint accepted revision 1
+```
+
+The residual velocity is momentum; it decays without re-acceleration and only a
+new setpoint produces sustained motion.
