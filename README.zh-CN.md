@@ -33,7 +33,7 @@ Swarmie 增加了一个真实的 Minecraft `Entity`，包含：
 
 | 项目 | 状态 |
 |---|---|
-| 版本 | `0.1.2`（最新 Release，pre-1.0） |
+| 版本 | `main` 为 `0.1.3-SNAPSHOT`；最新 Release 为 `0.1.2`（pre-1.0） |
 | Java | 必须 25 |
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
@@ -99,7 +99,7 @@ Windows：
 产物：
 
 ```text
-build/libs/swarmie-0.1.2.jar
+build/libs/swarmie-0.1.3-SNAPSHOT.jar
 ```
 
 Python SDK 测试（仅标准库，无需启动 Minecraft）：
@@ -160,9 +160,9 @@ Adapter 层
 
 ## 版本与发布
 
-Swarmie 遵循 [Semantic Versioning 2.0.0](https://semver.org/)。`0.1.2` 是
-当前功能 Release，`0.1.0` 是首个公开 pre-1.0 版本。规则与发布检查清单见
-[`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md)。
+Swarmie 遵循 [Semantic Versioning 2.0.0](https://semver.org/)。`main` 为
+`0.1.3-SNAPSHOT`；`0.1.2` 是当前功能 Release，`0.1.0` 是首个公开 pre-1.0
+版本。规则与发布检查清单见 [`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md)。
 
 Release 资产包含 JAR 与 `.sha256`。
 

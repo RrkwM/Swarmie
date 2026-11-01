@@ -2,7 +2,7 @@
 
 # Developer Guide
 
-> Swarmie `0.1.2` / Adapter contract `0.1`。这是 pre-1.0 项目，公共契约尚未稳定。
+> Swarmie `0.1.3-SNAPSHOT` / Adapter contract `0.1`。这是 pre-1.0 项目，公共契约尚未稳定。
 
 ## 1. 技术栈
 
@@ -80,7 +80,7 @@ Windows：
 产物：
 
 ```text
-build/libs/swarmie-0.1.2.jar
+build/libs/swarmie-0.1.3-SNAPSHOT.jar
 ```
 
 ## 4. 分层架构
