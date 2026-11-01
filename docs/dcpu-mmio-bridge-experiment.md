@@ -254,6 +254,11 @@ Before persistent programs or general peripherals:
 - add real fault-path and repeated-command scenarios;
 - decide whether an assembler/toolchain belongs in the product.
 
+The next architecture step is specified separately: the PCI-inspired
+[SDB v0 device bus](device-bus-v0.md) defines device identity, configuration,
+BARs, capabilities, IRQ and lifecycle. It is a draft; no device-bus code or
+public API exists yet.
+
 ## 10. Reproduction
 
 Fixture config (default-off; development environment required):

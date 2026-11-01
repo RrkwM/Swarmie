@@ -158,6 +158,7 @@ Hard rules:
 | Python SDK (discovery, commands, events) | [`docs/python-sdk.md`](docs/python-sdk.md) |
 | Minimal farming preparation workflow | [`docs/farming-workflow.md`](docs/farming-workflow.md) |
 | DCPU-16/MMIO entity bridge spike | [`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md) |
+| SDB v0 device bus ABI (draft) | [`docs/device-bus-v0.md`](docs/device-bus-v0.md) |
 | Semantic versioning and release process | [`docs/versioning.md`](docs/versioning.md) |
 | Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
 | Test evidence matrix | [`docs/test-matrix.md`](docs/test-matrix.md) |

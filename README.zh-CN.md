@@ -149,6 +149,7 @@ Adapter 层
 | Python SDK（发现、命令、事件） | [`docs/python-sdk.zh-CN.md`](docs/python-sdk.zh-CN.md) |
 | 最小农业准备流程 | [`docs/farming-workflow.md`](docs/farming-workflow.md) |
 | DCPU-16/MMIO 实验 | [`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md) |
+| SDB v0 设备总线 ABI（草案） | [`docs/device-bus-v0.md`](docs/device-bus-v0.md) |
 | 语义化版本与发布流程 | [`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md) |
 | 变更日志 | [`CHANGELOG.zh-CN.md`](CHANGELOG.zh-CN.md) |
 | 测试证据矩阵 | [`docs/test-matrix.zh-CN.md`](docs/test-matrix.zh-CN.md) |

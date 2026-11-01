@@ -194,6 +194,8 @@ commands return `ALREADY_TERMINAL`.
 Details:
 
 - [`api-current.md`](api-current.md)
+- [`dcpu-mmio-bridge-experiment.md`](dcpu-mmio-bridge-experiment.md)
+- [`device-bus-v0.md`](device-bus-v0.md)
 - [`adapter-registry.md`](adapter-registry.md)
 - [`adapter-io.md`](adapter-io.md)
 - [`adapter-command-specs.md`](adapter-command-specs.md)
