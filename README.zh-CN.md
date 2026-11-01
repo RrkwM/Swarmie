@@ -24,7 +24,9 @@ Swarmie 增加了一个真实的 Minecraft `Entity`，包含：
 - 独立的世界查询与本地传感器；
 - 纯 Java `:contract` 模块：公共 Adapter 提交、取消、结果、生命周期事件、
   幂等与批量契约；
-- 有界注册表/事件存储，以及默认关闭的 localhost JSONL 开发传输。
+- 有界注册表/事件存储，以及默认关闭的 localhost JSONL 开发传输；
+- 仅用标准库的 Python SDK：机器人发现、精确 UUID 选择、提交/等待/取消，
+  以及感知 epoch/遗漏的恢复。
 
 它不是 AI、寻路、任务编排、GUI 容器或远程网络项目。
 
@@ -101,6 +103,12 @@ Windows：
 build/libs/swarmie-0.1.1-SNAPSHOT.jar
 ```
 
+Python SDK 测试（仅标准库，无需启动 Minecraft）：
+
+```powershell
+python -m unittest discover -s tools/sdk/tests -v
+```
+
 架构、Adapter API、测试策略和扩展边界：**[开发者指南](docs/developer-guide.zh-CN.md)**。
 
 ## 架构
@@ -138,6 +146,7 @@ Adapter 层
 | 入站/出站、幂等、批量、取消 | [`docs/adapter-io.zh-CN.md`](docs/adapter-io.zh-CN.md) |
 | 四命令状态、副作用与限制 | [`docs/adapter-command-specs.zh-CN.md`](docs/adapter-command-specs.zh-CN.md) |
 | localhost JSONL/Python 开发传输 | [`docs/local-transport.zh-CN.md`](docs/local-transport.zh-CN.md) |
+| Python SDK（发现、命令、事件） | [`docs/python-sdk.zh-CN.md`](docs/python-sdk.zh-CN.md) |
 | 语义化版本与发布流程 | [`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md) |
 | 变更日志 | [`CHANGELOG.zh-CN.md`](CHANGELOG.zh-CN.md) |
 | 测试证据矩阵 | [`docs/test-matrix.zh-CN.md`](docs/test-matrix.zh-CN.md) |
@@ -160,7 +169,8 @@ Release 资产包含 JAR 与 `.sha256`。
 - 挖掘掉落留在世界，不会自动收集；
 - 命令在卸载时中断，重载后不会恢复；
 - 专用服务器、第二客户端、LOS 和部分碰撞/规模边界未验证；
-- localhost JSONL 默认关闭、仅 loopback，无认证/TLS/远程安全模型；
+- localhost JSONL 默认关闭、仅 loopback，无认证/TLS/远程安全模型；Python SDK
+  是建立在其上的开发接口，不是远程 API；
 - Adapter 契约仍是 0.x，可能变化。
 
 ## 许可证

@@ -20,6 +20,14 @@ All notable changes to Swarmie are documented here. The format follows
   recipe-unlock advancement.
 - Data-contract JUnit coverage for the item definition, model, recipe,
   advancement and lang keys (46 tests total).
+- Standard-library Python SDK (`tools/sdk/swarmie`):
+  - `SwarmieClient` discovery/events/session, explicit-UUID `Robot`,
+    `CommandHandle` with ack/result separation, timeout, cancel and
+    epoch/gap-aware reconnect;
+  - typed commands and structured errors for rejected submissions, unknown
+    cancels, event gaps and session changes;
+  - four runnable examples and 44 mock-server unittest tests.
+- Bilingual Python SDK guide and updated transport/developer documentation.
 
 ### Documentation
 
@@ -42,6 +50,9 @@ All notable changes to Swarmie are documented here. The format follows
   - right-clicking the egg logs a fresh `ROBOT_LOADED`, and
     `/swarmie inventory show` reports an empty inventory;
   - creative mode does not consume the egg (vanilla spawn-egg behavior).
+- 44 Python SDK tests against a controllable mock server.
+- Real client: SDK discovery, explicit-UUID flight to a terminal event, stop,
+  cancel and reconnect through the localhost transport.
 - Still unverified: dedicated-server startup, second-client sync and the
   remaining collision boundaries.
 

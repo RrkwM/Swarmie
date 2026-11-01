@@ -25,7 +25,9 @@ Swarmie adds a real Minecraft `Entity` with:
 - a pure Java `:contract` module with public Adapter submission, cancellation,
   results, lifecycle events, idempotency and batches;
 - a bounded registry/event store and a default-off localhost JSONL development
-  transport.
+  transport;
+- a standard-library Python SDK for discovery, explicit-UUID selection,
+  submit/wait/cancel and epoch/gap-aware recovery.
 
 It is **not** an AI, pathfinding, task-orchestration, GUI-container or
 remote-network project.
@@ -107,6 +109,12 @@ Output:
 build/libs/swarmie-0.1.1-SNAPSHOT.jar
 ```
 
+Python SDK tests (standard library only; no Minecraft required):
+
+```powershell
+python -m unittest discover -s tools/sdk/tests -v
+```
+
 Architecture, Adapter API, test strategy and extension boundaries:
 **[Developer Guide](docs/developer-guide.md)**.
 
@@ -145,6 +153,7 @@ Hard rules:
 | Inbound/outbound, idempotency, batch, cancel | [`docs/adapter-io.md`](docs/adapter-io.md) |
 | Four commands: state, side effects, limits | [`docs/adapter-command-specs.md`](docs/adapter-command-specs.md) |
 | Local JSONL/Python development transport | [`docs/local-transport.md`](docs/local-transport.md) |
+| Python SDK (discovery, commands, events) | [`docs/python-sdk.md`](docs/python-sdk.md) |
 | Semantic versioning and release process | [`docs/versioning.md`](docs/versioning.md) |
 | Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
 | Test evidence matrix | [`docs/test-matrix.md`](docs/test-matrix.md) |
@@ -172,7 +181,8 @@ Release assets include the JAR and its `.sha256`.
 - Dedicated-server, second-client, LOS and several collision/scale boundaries
   remain unverified.
 - The localhost JSONL transport is default-off, loopback-only and has no
-  authentication/TLS/remote security model.
+  authentication/TLS/remote security model; the Python SDK is a development
+  interface on top of it, not a remote API.
 - The Adapter contract is 0.x and may change.
 
 ## License

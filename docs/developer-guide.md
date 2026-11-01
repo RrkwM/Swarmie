@@ -42,6 +42,10 @@ src/main/java/dev/swarmie/
     transport/                   default-off localhost JSONL
 
 src/test/                        main-mod JUnit
+tools/sdk/swarmie/               Python SDK (standard library only)
+tools/sdk/examples/              runnable Python examples
+tools/sdk/tests/                 Python unittest suite + mock server
+tools/client/                    end-to-end JSONL smoke test
 docs/                            specs, evidence, handoff
 .github/workflows/ci.yml         CI
 ```
@@ -201,6 +205,16 @@ Current baseline: 46 JUnit tests.
 
 Do not substitute unit tests for a real-client check. Evidence classes and
 unverified items are in [`test-matrix.md`](test-matrix.md).
+
+Python SDK tests:
+
+```powershell
+python -m unittest discover -s tools/sdk/tests -v
+```
+
+Current Python baseline: 44 tests against a controllable in-process mock
+server. They cover the wire protocol and SDK state machine, not Minecraft
+integration. See [`python-sdk.md`](python-sdk.md).
 
 ## 8. Debugging
 

@@ -41,6 +41,10 @@ src/main/java/dev/swarmie/
     transport/                   默认关闭的 localhost JSONL
 
 src/test/                        主 Mod JUnit
+tools/sdk/swarmie/               Python SDK（仅标准库）
+tools/sdk/examples/              可运行 Python 示例
+tools/sdk/tests/                 Python unittest + mock server
+tools/client/                    端到端 JSONL smoke test
 docs/                            规范、证据、交接
 .github/workflows/ci.yml          CI
 ```
@@ -197,6 +201,15 @@ CancelAck ack = SwarmieAdapter.cancel(robot, "my-correlation-id");
 
 不要用 JUnit 通过替代真实客户端验证。证据分层和未验证项见
 [`test-matrix.md`](test-matrix.zh-CN.md)。
+
+Python SDK 测试：
+
+```powershell
+python -m unittest discover -s tools/sdk/tests -v
+```
+
+当前 Python 基线：44 项，针对可控的进程内 mock server；覆盖协议与 SDK 状态机，
+不代表 Minecraft 集成。见 [`python-sdk.md`](python-sdk.zh-CN.md)。
 
 ## 8. 开发者调试
 

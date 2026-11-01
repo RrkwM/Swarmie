@@ -3,7 +3,8 @@
 # Final Test Matrix — Adapter Refactor
 
 > 证据分类：
-> **A** = 自动化 JUnit；**C** = 真实 Minecraft 客户端；**S** = 静态编译/产物检查；
+> **A** = 自动化 JUnit；**P** = Python SDK unittest（mock server）；
+> **C** = 真实 Minecraft 客户端；**S** = 静态编译/产物检查；
 > **U** = 未验证；**L** = 已知限制。
 
 ## 1. 自动化与静态
@@ -20,6 +21,7 @@
 | 离线构建 | S | `--offline build` 通过 |
 | 0.1.0 Release JAR | S | 162,555 bytes，SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | 刷怪蛋物品/模型/配方/进度/语言数据 | A | 3 项数据契约测试通过 |
+| Python SDK（mock server） | P | 44 passed |
 
 测试类：
 
@@ -76,6 +78,8 @@ SwarmieSpawnEggDataTest       3
 | 刷怪蛋获取 + 创造搜索 | C | `Gave 1 [Swarmie Spawn Egg]`；搜索 `swarmie` 返回该物品 |
 | 配方解锁/自动填充/合成 | C | `Unlocked 1 recipe(s)`；配方书填充 3×3 网格；输出合成 |
 | 右键生成 | C | 新 `ROBOT_LOADED` `ff69dd53…`；库存 `empty` |
+| Python SDK 发现 + 指定 UUID 飞行/停止/取消 | C | 15 台机器人；`SUCCEEDED`/`SUCCEEDED`/`CANCELLED`；重连 `latest=63 missed=false` |
+| Python SDK 挖掘 smoke | C | 所选测试坐标返回 `MINE FAILED EXECUTION_FAILED 'target is air'`，被明确报告 |
 | 事件环实机溢出 | U | 未填满 1024；小容量 JUnit 已验证 |
 | 批量实机提交 | U | JUnit 已覆盖 batch 上限/逐条语义；无实机 batch 命令 |
 | 第二客户端同步 | U | 未测试 |
@@ -84,7 +88,29 @@ SwarmieSpawnEggDataTest       3
 | LOS 传感器 | L | 未支持 |
 | 高速/斜向/台阶/天花板碰撞 | U | 基线未覆盖 |
 
-## 3. 生命周期实测细节
+## 3. Python SDK（mock server）
+
+```powershell
+python -m unittest discover -s tools/sdk/tests -v
+```
+
+44 项测试，无需启动 Minecraft。
+
+| 项目 | 证据 | 结果 |
+|---|---|---|
+| 命令/ack/batch JSON 编解码 | P | 通过 |
+| 请求/响应关联（含穿插推送） | P | 通过 |
+| 精确 UUID 选择 / 未知 UUID | P | 通过 |
+| ack 与终态结果区分 | P | 通过 |
+| 等待超时 | P | 通过 |
+| 取消 accepted/already-terminal/unknown | P | 通过 |
+| 重复提交与拒绝提交 | P | 通过 |
+| 连接关闭与服务端错误 | P | 通过 |
+| 同 epoch 重连与 epoch 变化 | P | 通过 |
+| 事件遗漏与机器人隔离 | P | 通过 |
+| 新连接游标基线 | P | 通过 |
+
+## 4. 生命周期实测细节
 
 - 4 个机器人加载 → 4 个 `ROBOT_LOADED`；
 - 提交 4 条 1000-tick flight → 4 `COMMAND_ACCEPTED` + 4 `COMMAND_STARTED`；
@@ -96,7 +122,7 @@ SwarmieSpawnEggDataTest       3
 - `/kill` → `ROBOT_UNLOADED` + `ROBOT_REMOVED (KILLED)`；
 - 事件序号 1–44 连续，`missed=false`。
 
-## 4. 结论
+## 5. 结论
 
 核心 Adapter 本地链路已达到：
 
@@ -107,12 +133,17 @@ SwarmieSpawnEggDataTest       3
 - 真实客户端加载/卸载/维度/移除/命令中断/Adapter submit 验证；
 - 刷怪蛋物品、模型、配方、进度和语言数据（仅单元检查）；
 - 真实客户端：刷怪蛋可获取并在创造搜索中找到；配方已解锁并通过配方书
-  在 3×3 网格中合成；右键生成新机器人且库存为空。
+  在 3×3 网格中合成；右键生成新机器人且库存为空；
+- Python SDK（仅标准库）：明确 UUID 机器人、命令句柄、取消、感知 epoch/遗漏的
+  重连，以及 44 项 mock-server 测试；
+- 真实客户端：SDK 发现、指定 UUID 飞行到终态、停止、取消和重连均通过
+  localhost 传输验证。
 
 不能宣称：
 
 - 支持远程/公网连接、TLS、认证或多人安全模型；
 - GUI 容器可用；
+- Python SDK 是远程或带认证的 API（它只是 localhost 开发工具）；
 - 第二客户端/专用服务器/事件环实机溢出已验证；
 - 所有碰撞/传感器边界已验证。
 

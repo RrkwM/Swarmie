@@ -7,7 +7,12 @@ import dev.swarmie.adapter.SwarmieAdapter;
 import dev.swarmie.contract.CancelAck;
 import dev.swarmie.contract.CommandSubmission;
 import dev.swarmie.contract.EventBatch;
+import dev.swarmie.contract.ErrorCode;
+import dev.swarmie.contract.RobotDescriptor;
 import dev.swarmie.contract.RobotId;
+import dev.swarmie.contract.RobotLifecycleState;
+import dev.swarmie.contract.RobotState;
+import dev.swarmie.contract.SetpointAck;
 import dev.swarmie.contract.SubmitAck;
 import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
@@ -23,6 +28,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -239,6 +245,8 @@ public final class LocalJsonTransport implements AutoCloseable {
                             LocalJsonTransport.this.session.serverEpoch(),
                             LocalJsonTransport.this.session.snapshotRobots()));
                     case "events" -> offer(TransportCodec.events(requestId, readEvents(request)));
+                    case "state" -> offer(state(request, requestId));
+                    case "setpoint" -> offer(setpoint(request, requestId));
                     case "submit" -> offer(TransportCodec.ack(requestId, submit(request)));
                     case "cancel" -> offer(TransportCodec.cancelAck(requestId, cancel(request)));
                     case "ping" -> offer("{\"type\":\"pong\"}");
@@ -254,6 +262,45 @@ public final class LocalJsonTransport implements AutoCloseable {
             long after = request.has("after") ? request.get("after").getAsLong() : 0L;
             int max = request.has("max") ? request.get("max").getAsInt() : 64;
             return LocalJsonTransport.this.session.readEvents(after, Math.max(1, Math.min(max, 256)));
+        }
+
+        private String state(JsonObject request, String requestId) {
+            RobotId robot = TransportCodec.parseRobot(request);
+            Optional<RobotDescriptor> descriptor = LocalJsonTransport.this.session.findRobot(robot);
+            if (descriptor.isEmpty()) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_NOT_FOUND.name(),
+                        "robot is not registered");
+            }
+            RobotLifecycleState lifecycle = descriptor.get().lifecycle();
+            if (lifecycle == RobotLifecycleState.REMOVED) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_REMOVED.name(),
+                        "robot has been removed");
+            }
+            if (lifecycle == RobotLifecycleState.UNLOADED) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_NOT_LOADED.name(),
+                        "robot is not loaded");
+            }
+            Optional<RobotState> state = LocalJsonTransport.this.session.readState(robot);
+            if (state.isEmpty()) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_UNAVAILABLE.name(),
+                        "robot state is not available yet");
+            }
+            return TransportCodec.state(requestId, state.get());
+        }
+
+        private String setpoint(JsonObject request, String requestId) {
+            TransportCodec.SetpointRequest parsed = TransportCodec.parseSetpoint(request);
+            if (!SetpointAck.VELOCITY_CHANNEL.equals(parsed.channel())) {
+                SetpointAck rejected = SetpointAck.rejected(
+                        parsed.robotId(), 0L, false, ErrorCode.UNSUPPORTED_COMMAND,
+                        "only the velocity setpoint channel is implemented",
+                        LocalJsonTransport.this.session.serverEpoch(),
+                        LocalJsonTransport.this.session.serverTick());
+                return TransportCodec.setpointAck(requestId, rejected);
+            }
+            SetpointAck ack = LocalJsonTransport.this.session.requestVelocitySetpoint(
+                    parsed.robotId(), parsed.velocity(), parsed.clear());
+            return TransportCodec.setpointAck(requestId, ack);
         }
 
         private SubmitAck submit(JsonObject request) {

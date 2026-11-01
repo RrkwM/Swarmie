@@ -17,6 +17,12 @@ Swarmie 的重要变化记录在此。格式参考
   - `/summon swarmie:swarmie` 行为不变。
 - 物品定义、模型、16×16 纹理、`en_us`/`zh_cn` 名称和配方解锁进度。
 - 物品定义/模型/配方/进度/语言键的数据契约 JUnit（共 46 项测试）。
+- 仅用标准库的 Python SDK（`tools/sdk/swarmie`）：
+  - `SwarmieClient` 发现/事件/会话、精确 UUID 的 `Robot`、区分 ack/终态的
+    `CommandHandle`、超时、取消，以及感知 epoch/遗漏的重连；
+  - 类型化命令与结构化错误：拒绝提交、未知取消、事件遗漏和会话变化；
+  - 4 个可运行示例和 44 项 mock-server unittest。
+- 双语 Python SDK 文档，并更新传输/开发者文档。
 
 ### 文档
 
@@ -35,6 +41,9 @@ Swarmie 的重要变化记录在此。格式参考
   - `/recipe give` 解锁配方；配方书自动填充 3×3 铁/红石/铜网格，输出合成刷怪蛋；
   - 右键刷怪蛋会记录新的 `ROBOT_LOADED`，`/swarmie inventory show` 显示空库存；
   - 创造模式不消耗刷怪蛋（原版刷怪蛋行为）。
+- 44 项 Python SDK 测试（针对可控 mock server）。
+- 真实客户端：SDK 发现、指定 UUID 飞行到终态、停止、取消和重连均通过
+  localhost 传输验证。
 - 仍未验证：专用服务器启动、第二客户端同步和其余碰撞边界。
 
 ## [0.1.0] - 2026-10-28

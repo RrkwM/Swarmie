@@ -42,6 +42,9 @@ One JSON object per line.
 {"op":"events","after":0,"max":64,"id":"2"}
 {"op":"submit","robot":"<uuid>","correlation":"c1","command":{"type":"STOP"},"id":"3"}
 {"op":"cancel","robot":"<uuid>","correlation":"c1","id":"4"}
+{"op":"state","robot":"<uuid>","id":"5"}
+{"op":"setpoint","robot":"<uuid>","channel":"velocity","value":{"x":0.1,"y":0,"z":0},"id":"6"}
+{"op":"setpoint","robot":"<uuid>","channel":"velocity","clear":true,"id":"7"}
 ```
 
 Commands:
@@ -53,25 +56,40 @@ Commands:
 {"type":"USE_ITEM_ON_BLOCK","position":{"x":500,"y":99,"z":500},"face":"UP","hit":{"x":500.5,"y":100,"z":500.5}}
 ```
 
-Responses: `hello`, `robots`, `events`, `ack`, `cancel_ack`, `error`, `pong`.
-Events are also pushed at END tick.
+Responses: `hello`, `robots`, `state`, `events`, `ack`, `cancel_ack`,
+`setpoint_ack`, `error`, `pong`. State is a server-authoritative snapshot whose
+`serverTick` is its freshness point. Setpoint acceptance is synchronous; it is
+not an action and no per-update events are emitted. Events are also pushed at
+END tick.
 
-## 4. Python client
+A velocity setpoint and legacy `TIMED_FLIGHT`/`STOP` cannot own the motion
+channel simultaneously; the loser receives `MOTION_CHANNEL_BUSY`. Clear the
+setpoint before using legacy motion, or wait for legacy motion to terminate
+before setting a setpoint. The low-level debug commands are not part of this
+protocol.
 
-```bash
-python tools/client/swarmie_client.py \
-  --host 127.0.0.1 --port 25580 \
-  --duration 20 --mine-x 501 --mine-y 99 --mine-z 500
+## 4. Python
+
+The first official client library is the Python SDK in `tools/sdk/swarmie`,
+documented in [`python-sdk.md`](python-sdk.md). It wraps discovery, explicit
+UUID selection, live self-state, persistent velocity setpoints, submit/wait/
+cancel and epoch/gap handling; it remains standard-library-only and synchronous.
+
+```powershell
+python tools/sdk/examples/01_list_robots.py
+python tools/sdk/examples/02_fly_and_stop.py --robot <uuid>
+python tools/sdk/examples/05_curve_flight.py --robot <uuid>
 ```
 
-No third-party dependencies. The script:
+The end-to-end transport smoke test remains:
 
-1. queries robots;
-2. mines (before moving out of range);
-3. flies 20 ticks and waits for completion;
-4. stops, then duplicates the stop correlation;
-5. starts a long flight and cancels it;
-6. reconnects and reports epoch/latest/missed.
+```powershell
+python tools/client/swarmie_client.py --robot <uuid>
+```
+
+It queries robots, mines, flies and waits, stops, duplicates the stop
+correlation, starts a long flight and cancels it, then reconnects and reports
+epoch/latest/missed.
 
 ## 5. Live result
 

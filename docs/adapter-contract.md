@@ -67,6 +67,41 @@ Constraints:
 Debug commands `velocity`, `inventory`, `query` and `sensor` are **not** public
 contract commands and do not produce Adapter command events.
 
+### 3.1 Live self-state and velocity setpoints
+
+`RobotState` is a server-authoritative snapshot, distinct from the registry
+metadata in `RobotDescriptor`:
+
+```text
+RobotId robotId
+long serverEpoch
+long serverTick          // freshness point
+String dimensionId
+Vec3Dto position
+Vec3Dto velocity         // actual native velocity
+double yaw, pitch
+RobotLifecycleState lifecycle
+```
+
+`state` JSONL requests return this snapshot for a loaded robot. Unknown,
+unloaded or removed robots return `ROBOT_NOT_FOUND`/`ROBOT_NOT_LOADED`/
+`ROBOT_REMOVED`; an unavailable snapshot returns `ROBOT_UNAVAILABLE`.
+
+The velocity setpoint is not a `CommandSpec` and never enters the action FIFO:
+
+```text
+SetpointAck(RobotId robotId, String channel, long revision, boolean active,
+            boolean accepted, Vec3Dto effectiveVelocity, boolean clamped,
+            ErrorCode error, String message, long serverEpoch, long serverTick)
+```
+
+`accepted=true` means the target was accepted, not reached. `clear` releases
+the target. A setpoint and legacy `TIMED_FLIGHT`/`STOP` are mutually exclusive
+on the motion channel; the losing request receives `MOTION_CHANNEL_BUSY`.
+Velocities above `ContractLimits.MAX_SETPOINT_SPEED` are clamped and report
+`clamped=true`.
+
+
 ## 4. Coordinates and identifiers
 
 - `RobotId`: stable UUID;

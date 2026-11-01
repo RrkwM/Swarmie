@@ -7,6 +7,7 @@ public final class ContractLimits {
     public static final int MAX_BATCH_SIZE = 64;
     public static final int MAX_CANCEL_QUEUE = 64;
     public static final long IDEMPOTENCY_TTL_SECONDS = 600;
+    public static final double MAX_SETPOINT_SPEED = 0.35D;
 
     private ContractLimits() {
     }

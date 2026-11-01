@@ -15,6 +15,8 @@ import dev.swarmie.contract.DirectionDto;
 import dev.swarmie.contract.EventBatch;
 import dev.swarmie.contract.RobotDescriptor;
 import dev.swarmie.contract.RobotId;
+import dev.swarmie.contract.RobotState;
+import dev.swarmie.contract.SetpointAck;
 import dev.swarmie.contract.SubmitAck;
 import dev.swarmie.contract.Vec3Dto;
 
@@ -57,6 +59,20 @@ public final class TransportCodec {
         return new RobotId(UUID.fromString(requireString(request, "robot")));
     }
 
+    public static SetpointRequest parseSetpoint(JsonObject request) {
+        RobotId robot = parseRobot(request);
+        String channel = requireString(request, "channel");
+        boolean clear = request.has("clear") && request.get("clear").getAsBoolean();
+        Vec3Dto velocity = null;
+        if (!clear) {
+            velocity = parseVec(request, "value");
+        }
+        return new SetpointRequest(robot, channel, velocity, clear);
+    }
+
+    public record SetpointRequest(RobotId robotId, String channel, Vec3Dto velocity, boolean clear) {
+    }
+
     public static String correlation(JsonObject request) {
         return requireString(request, "correlation");
     }
@@ -82,6 +98,18 @@ public final class TransportCodec {
         JsonObject response = base("robots", requestId);
         response.addProperty("epoch", epoch);
         response.add("robots", GSON.toJsonTree(robots));
+        return GSON.toJson(response);
+    }
+
+    public static String state(String requestId, RobotState state) {
+        JsonObject response = base("state", requestId);
+        response.add("state", GSON.toJsonTree(state));
+        return GSON.toJson(response);
+    }
+
+    public static String setpointAck(String requestId, SetpointAck ack) {
+        JsonObject response = base("setpoint_ack", requestId);
+        response.add("ack", GSON.toJsonTree(ack));
         return GSON.toJson(response);
     }
 

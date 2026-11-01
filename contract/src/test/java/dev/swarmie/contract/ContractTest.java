@@ -99,4 +99,46 @@ class ContractTest {
         assertEquals(CancelStatus.UNKNOWN, unknown.status());
         assertEquals(ErrorCode.UNKNOWN_CORRELATION, unknown.error());
     }
+
+    @Test
+    void robotStateRequiresFiniteCompleteSnapshot() {
+        RobotId robot = new RobotId(UUID.randomUUID());
+        RobotState state = new RobotState(robot, 7L, 100L, "minecraft:overworld",
+                new Vec3Dto(1, 64, -3), new Vec3Dto(0.1, 0, -0.2),
+                90.0, -10.0, RobotLifecycleState.LOADED);
+        assertEquals(100L, state.serverTick());
+        assertEquals(RobotLifecycleState.LOADED, state.lifecycle());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new RobotState(robot, 7L, 100L, "minecraft:overworld",
+                        new Vec3Dto(1, 64, -3), new Vec3Dto(0.1, 0, -0.2),
+                        Double.NaN, 0.0, RobotLifecycleState.LOADED));
+        assertThrows(IllegalArgumentException.class,
+                () -> new RobotState(robot, 7L, 100L, " ",
+                        new Vec3Dto(1, 64, -3), Vec3Dto.ZERO,
+                        0.0, 0.0, RobotLifecycleState.LOADED));
+    }
+
+    @Test
+    void setpointAckDistinguishesAcceptanceFromRejection() {
+        RobotId robot = new RobotId(UUID.randomUUID());
+        SetpointAck accepted = SetpointAck.accepted(robot, 3,
+                new Vec3Dto(0.1, 0, 0), false, 7L, 100L);
+        assertTrue(accepted.accepted());
+        assertTrue(accepted.active());
+        assertEquals(3, accepted.revision());
+        assertEquals(7L, accepted.serverEpoch());
+        assertNull(accepted.error());
+
+        SetpointAck cleared = SetpointAck.cleared(robot, 4, 7L, 101L);
+        assertTrue(cleared.accepted());
+        assertFalse(cleared.active());
+        assertNull(cleared.effectiveVelocity());
+
+        SetpointAck rejected = SetpointAck.rejected(robot, 4, true,
+                ErrorCode.MOTION_CHANNEL_BUSY, "busy", 7L, 102L);
+        assertFalse(rejected.accepted());
+        assertEquals(ErrorCode.MOTION_CHANNEL_BUSY, rejected.error());
+        assertEquals(4, rejected.revision());
+    }
 }

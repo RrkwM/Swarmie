@@ -47,6 +47,22 @@ COMMAND_COMPLETED/FAILED/CANCELLED/INTERRUPTED
 
 No MoveTo/pathfinding/obstacle avoidance is implemented.
 
+### Motion-channel compatibility with velocity setpoints
+
+The persistent velocity setpoint is a separate control channel, not a Runtime
+command. One owner is allowed at a time:
+
+- submitting `TimedFlight` or `Stop` while a velocity setpoint is active is
+  rejected with `MOTION_CHANNEL_BUSY`;
+- requesting a velocity setpoint (including clear) while a `TimedFlight`/`Stop`
+  command is active or queued is rejected with `MOTION_CHANNEL_BUSY`;
+- `MineBlock`/`UseItemOnBlock` are unaffected hand actions;
+- clearing the setpoint releases the channel only when the setpoint owns it.
+
+Existing scripts that use only `TimedFlight`/`Stop` are unchanged. The debug
+`swarmie velocity`/`swarmie stop` commands are low-level and bypass this
+arbitration; they are not public API.
+
 ## 3. Stop
 
 - no parameters;

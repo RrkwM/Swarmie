@@ -23,6 +23,8 @@ import dev.swarmie.contract.RobotEvent;
 import dev.swarmie.contract.RobotEventType;
 import dev.swarmie.contract.RobotId;
 import dev.swarmie.contract.RobotLifecycleState;
+import dev.swarmie.contract.RobotState;
+import dev.swarmie.contract.SetpointAck;
 import dev.swarmie.contract.SubmitAck;
 import dev.swarmie.contract.Vec3Dto;
 import dev.swarmie.runtime.SubmissionResult;
@@ -40,6 +42,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,7 +72,9 @@ public final class AdapterSession {
     private final Queue<CancelRequest> cancels = new ConcurrentLinkedQueue<>();
     private final AtomicInteger cancelCount = new AtomicInteger();
     private final Map<UUID, SwarmieEntity> loaded = new HashMap<>();
-    private long serverTick;
+    private final VelocitySetpoints velocitySetpoints = new VelocitySetpoints();
+    private final RobotStateStore states = new RobotStateStore();
+    private volatile long serverTick;
     private long lastPublishedSequence;
     private boolean stopped;
     private LocalJsonTransport transport;
@@ -125,6 +130,7 @@ public final class AdapterSession {
             return;
         }
         this.serverTick++;
+        applyVelocitySetpoints();
         processCancels();
         int budget = INBOUND_BUDGET;
         for (InboundQueue.Entry entry : this.inbound.poll(budget)) {
@@ -144,6 +150,7 @@ public final class AdapterSession {
                     CAPABILITIES,
                     this.serverTick);
         }
+        publishStates();
         flushEvents();
     }
 
@@ -157,6 +164,8 @@ public final class AdapterSession {
         this.loaded.put(id.value(), robot);
         robot.runtime().setListener(new RuntimeListener(id, this));
         this.registry.load(id, dimensionId(level), toDto(robot.position()), CAPABILITIES, this.serverTick);
+        this.velocitySetpoints.forget(id.value());
+        this.states.put(toState(robot));
 
         String detail = dimensionChange ? "dimension change complete" : "";
         append(RobotEventType.ROBOT_LOADED, id, null, null, detail);
@@ -173,6 +182,8 @@ public final class AdapterSession {
             return;
         }
         this.loaded.remove(id.value());
+        this.velocitySetpoints.forget(id.value());
+        this.states.remove(id);
         robot.onAdapterSessionEnd("robot unloaded");
         robot.runtime().setListener(null);
         for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -188,6 +199,8 @@ public final class AdapterSession {
         RobotId id = new RobotId(robot.getUUID());
         if (reason == Entity.RemovalReason.CHANGED_DIMENSION) {
             this.loaded.remove(id.value());
+            this.velocitySetpoints.forget(id.value());
+            this.states.remove(id);
             robot.onAdapterSessionEnd("dimension change");
             robot.runtime().setListener(null);
             for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -202,6 +215,8 @@ public final class AdapterSession {
         }
 
         this.loaded.remove(id.value());
+        this.velocitySetpoints.forget(id.value());
+        this.states.remove(id);
         robot.onAdapterSessionEnd("owner removed");
         robot.runtime().setListener(null);
         for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -217,6 +232,99 @@ public final class AdapterSession {
         return this.registry.snapshot();
     }
 
+    /** Latest completed/known self-state snapshot for a loaded robot. */
+    public Optional<RobotState> readState(RobotId robotId) {
+        return this.states.find(robotId);
+    }
+
+    /**
+     * Accepts, replaces or clears the velocity setpoint. This is deliberately
+     * not a Runtime command: it never enters the action FIFO.
+     */
+    public SetpointAck requestVelocitySetpoint(RobotId robotId, Vec3Dto velocity, boolean clear) {
+        if (this.stopped) {
+            return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId), false,
+                    ErrorCode.ROBOT_UNAVAILABLE, "server adapter is not running",
+                    this.serverEpoch, this.serverTick);
+        }
+        Optional<RobotDescriptor> descriptor = this.registry.find(robotId);
+        if (descriptor.isEmpty()) {
+            return SetpointAck.rejected(robotId, 0L, false,
+                    ErrorCode.ROBOT_NOT_FOUND, "robot is not registered",
+                    this.serverEpoch, this.serverTick);
+        }
+        RobotLifecycleState lifecycle = descriptor.get().lifecycle();
+        if (lifecycle == RobotLifecycleState.REMOVED) {
+            return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId), false,
+                    ErrorCode.ROBOT_REMOVED, "robot has been removed",
+                    this.serverEpoch, this.serverTick);
+        }
+        if (lifecycle == RobotLifecycleState.UNLOADED) {
+            return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId), false,
+                    ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded",
+                    this.serverEpoch, this.serverTick);
+        }
+        if (!clear && velocity == null) {
+            return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId),
+                    this.velocitySetpoints.isSetpointActive(robotId),
+                    ErrorCode.INVALID_VECTOR, "velocity is required",
+                    this.serverEpoch, this.serverTick);
+        }
+        return clear
+                ? this.velocitySetpoints.clear(robotId, this.serverEpoch, this.serverTick)
+                : this.velocitySetpoints.set(robotId, velocity, this.serverEpoch, this.serverTick);
+    }
+
+    private void applyVelocitySetpoints() {
+        for (SwarmieEntity robot : this.loaded.values()) {
+            VelocitySetpoints.Frame frame = this.velocitySetpoints.frame(robot.getUUID());
+            if (frame.clear()) {
+                robot.stopFlight();
+            }
+            if (frame.velocity() != null) {
+                robot.setDesiredVelocity(new Vec3(
+                        frame.velocity().x(), frame.velocity().y(), frame.velocity().z()));
+            }
+        }
+    }
+
+    private void publishStates() {
+        Set<UUID> live = new HashSet<>();
+        for (SwarmieEntity robot : this.loaded.values()) {
+            this.states.put(toState(robot));
+            live.add(robot.getUUID());
+        }
+        this.states.retainOnly(live);
+    }
+
+    private RobotState toState(SwarmieEntity robot) {
+        return new RobotState(
+                new RobotId(robot.getUUID()),
+                this.serverEpoch,
+                this.serverTick,
+                dimensionId(robot),
+                toDto(robot.position()),
+                toDto(robot.getVelocity()),
+                robot.getYRot(),
+                robot.getXRot(),
+                RobotLifecycleState.LOADED);
+    }
+
+    private static boolean isLegacyMotion(CommandType type) {
+        return type == CommandType.TIMED_FLIGHT || type == CommandType.STOP;
+    }
+
+    private static boolean isLegacyMotion(SwarmieCommand.Type type) {
+        return type == SwarmieCommand.Type.TIMED_FLIGHT || type == SwarmieCommand.Type.STOP;
+    }
+
+    /** Releases one legacy motion ownership claim for this terminal command. */
+    void onLegacyMotionTerminal(RobotId robotId, SwarmieCommand command) {
+        if (isLegacyMotion(command.getType())) {
+            this.velocitySetpoints.releaseLegacy(robotId);
+        }
+    }
+
     public SubmitAck submit(CommandSubmission submission) {
         if (this.stopped) {
             return SubmitAck.rejected(submission.robotId(), submission.correlationId(),
@@ -224,7 +332,8 @@ public final class AdapterSession {
         }
         // Duplicate/conflict must be resolved even if the robot is no longer
         // available; an already accepted request retains its known state.
-        if (!this.inbound.containsCorrelation(submission.correlationId())) {
+        boolean newCorrelation = !this.inbound.containsCorrelation(submission.correlationId());
+        if (newCorrelation) {
             Optional<RobotDescriptor> descriptor = this.registry.find(submission.robotId());
             if (descriptor.isEmpty()) {
                 return SubmitAck.rejected(submission.robotId(), submission.correlationId(),
@@ -240,7 +349,23 @@ public final class AdapterSession {
                         submission.command().type(), ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded");
             }
         }
-        return this.inbound.submit(submission);
+
+        boolean claimedLegacy = false;
+        if (newCorrelation && isLegacyMotion(submission.command().type())) {
+            if (!this.velocitySetpoints.claimLegacy(submission.robotId())) {
+                return SubmitAck.rejected(submission.robotId(), submission.correlationId(),
+                        submission.command().type(), ErrorCode.MOTION_CHANNEL_BUSY,
+                        "a velocity setpoint owns the motion channel; clear it before TimedFlight/Stop");
+            }
+            claimedLegacy = true;
+        }
+
+        SubmitAck ack = this.inbound.submit(submission);
+        if (claimedLegacy
+                && (ack.status() == AckStatus.REJECTED || ack.status() == AckStatus.DUPLICATE)) {
+            this.velocitySetpoints.releaseLegacy(submission.robotId());
+        }
+        return ack;
     }
 
     public BatchSubmitAck submitBatch(BatchSubmission batch) {
@@ -327,6 +452,11 @@ public final class AdapterSession {
     private void failCorrelation(
             RobotId robotId, String correlationId, String internalId,
             CommandState state, ErrorCode error, String message, String detail) {
+        this.inbound.findRecord(correlationId).ifPresent(record -> {
+            if (isLegacyMotion(record.submission().command().type())) {
+                this.velocitySetpoints.releaseLegacy(robotId);
+            }
+        });
         this.inbound.markTerminal(correlationId, state, error);
         CommandResult result = new CommandResult(robotId, correlationId, internalId, state, error, message);
         RobotEventType type = state == CommandState.CANCELLED
@@ -418,6 +548,9 @@ public final class AdapterSession {
             default -> RobotEventType.COMMAND_FAILED;
         };
         append(type, submission.robotId(), submission.correlationId(), result, detail);
+        if (isLegacyMotion(submission.command().type())) {
+            this.velocitySetpoints.releaseLegacy(submission.robotId());
+        }
     }
 
     private static ErrorCode mapRuntimeError(String error) {
@@ -542,6 +675,7 @@ public final class AdapterSession {
                     command.getCorrelationId(),
                     result(command, state, error),
                     command.getResult());
+            this.session.onLegacyMotionTerminal(this.robotId, command);
         }
 
         private CommandResult result(SwarmieCommand command, CommandState state, ErrorCode error) {

@@ -44,6 +44,7 @@ $env:JAVA_HOME = (Resolve-Path .\tools\jdk).Path
 $env:GRADLE_USER_HOME = (Resolve-Path .\tools\gradle-home).Path
 .\gradlew.bat test
 .\tools\scripts\build.ps1
+python -m unittest discover -s tools/sdk/tests -v
 ```
 
 可选（仅开发验证）直接加载测试世界：
@@ -58,6 +59,7 @@ $env:GRADLE_USER_HOME = (Resolve-Path .\tools\gradle-home).Path
 
 ```text
 46 JUnit tests passed
+44 Python SDK tests passed
 BUILD SUCCESSFUL
 ```
 
@@ -89,7 +91,9 @@ SHA-256 dd529fd89192ff6f581fbcda9a5255d4945be790ef40a9b09202a57b7854861c
 | `contract/` | 独立纯 Java `:contract`，无 Minecraft/Fabric 编译依赖 |
 | `src/main/java/dev/swarmie/adapter/` | registry、event、io、transport |
 | `src/test/` | 主 Mod JUnit；`contract/src/test/` 为契约测试 |
-| `docs/` | 契约、生命周期、I/O、命令规格、测试矩阵、传输文档 |
+| `tools/sdk/` | Python SDK、可运行示例、mock-server unittest |
+| `tools/client/` | 端到端 JSONL smoke test（已改用 SDK） |
+| `docs/` | 契约、生命周期、I/O、命令规格、测试矩阵、传输/SDK 文档 |
 | `run/` | 本地 disposable 测试世界/配置，gitignored |
 | `tools/repo/` | 本地 Maven 依赖，gitignored |
 | `tools/provision-tmp/` | 临时探针/测试缓存，gitignored |
@@ -114,10 +118,14 @@ SHA-256 dd529fd89192ff6f581fbcda9a5255d4945be790ef40a9b09202a57b7854861c
 Local JSONL transport listening on 127.0.0.1:25580
 ```
 
-Python 客户端（无第三方依赖）：
+Python 客户端（无第三方依赖）。SDK 与示例见
+[`docs/python-sdk.md`](docs/python-sdk.md)：
 
 ```powershell
-python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
+python tools/sdk/examples/01_list_robots.py
+python tools/sdk/examples/02_fly_and_stop.py --robot <uuid>
+python tools/sdk/examples/03_cancel_command.py --robot <uuid>
+python tools/client/swarmie_client.py --robot <uuid>
 ```
 
 当前构建环境如无系统 Python，可使用 bundled Python：
@@ -145,6 +153,8 @@ python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
 - 石头 `useItemOn` 放置、库存消耗；
 - 真实客户端：刷怪蛋可获取/创造搜索可见、配方书自动填充 3×3 并合成、
   右键生成新机器人（空库存）；
+- Python SDK：44 项 mock-server unittest；真实客户端发现、指定 UUID 飞行到终态、
+  停止、取消、重连通过；
 - 随机 `serverEpoch` 会话变化。
 
 ## 6. 未验证/已知限制
@@ -154,7 +164,9 @@ python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
 - 第二客户端、专用服务器、GUI 容器、LOS；
 - 高速/斜向/台阶/天花板碰撞；
 - 慢消费者断连行为主要为代码审查/队列设计；
-- localhost transport 没有正式协议/认证/远程支持。
+- localhost transport 没有正式协议/认证/远程支持；
+- Python SDK 只覆盖四命令与单连接同步流程；无批量、异步、多客户端压力测试；
+  实机挖掘 smoke 在所选坐标返回 `target is air`（非 SDK 回归）。
 
 ## 7. 交接优先阅读
 
@@ -164,7 +176,8 @@ python tools/client/swarmie_client.py --host 127.0.0.1 --port 25580
 4. [`docs/adapter-registry.md`](docs/adapter-registry.md) — 生命周期/serverEpoch/事件环；
 5. [`docs/adapter-io.md`](docs/adapter-io.md) — 入站/出站/幂等/批量/取消；
 6. [`docs/adapter-command-specs.md`](docs/adapter-command-specs.md) — 四命令语义；
-7. [`docs/local-transport.md`](docs/local-transport.md) — 本地 JSONL/Python。
+7. [`docs/local-transport.md`](docs/local-transport.md) — 本地 JSONL 传输；
+8. [`docs/python-sdk.md`](docs/python-sdk.md) — Python SDK 与示例。
 
 ## 8. 下一阶段建议
 
