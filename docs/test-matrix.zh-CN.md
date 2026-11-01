@@ -12,31 +12,41 @@
 | 项目 | 证据 | 结果 |
 |---|---|---|
 | `:contract` 独立编译 classpath | S | `compileClasspath: No dependencies` |
-| 契约无 Minecraft/Fabric import | S | boundary check: 23 files |
+| 契约无 Minecraft/Fabric import | S | boundary check: 30 files |
 | 契约包被最终 JAR 收录 | S | `dev/swarmie/contract/*.class` |
-| `:contract:test` | A | 7 passed |
-| 根 `test` | A | 39 passed |
-| 合计 | A | **46 passed** |
+| `:contract:test` | A | 12 passed |
+| 根 `test` | A | 71 passed |
+| 合计 | A | **83 passed** |
 | 无缓存测试 | A | `cleanTest test --no-build-cache` 通过 |
 | 离线构建 | S | `--offline build` 通过 |
 | 0.1.0 Release JAR | S | 162,555 bytes，SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | 刷怪蛋物品/模型/配方/进度/语言数据 | A | 3 项数据契约测试通过 |
-| Python SDK（mock server） | P | 44 passed |
+| Python SDK（mock server） | P | 66 passed |
 
 测试类：
 
 ```text
-ContractTest                  7
+ContractTest                  9
+ObservationContractTest       3
+RobotInventoryStoreTest       2
+RobotStateStoreTest           2
+VelocitySetpointsTest         7
 AdapterEventBusTest           2
 AdapterEventStoreTest         3
 InboundQueueTest              8
 RobotRegistryTest             4
+TransportCodecTest            6
 FlightControllerTest          2
 InteractionRuntimeTest        5
 SwarmieRuntimeEventTest       4
 SwarmieRuntimeTest            5
 SensingTest                   3
 SwarmieSpawnEggDataTest       3
+Dcpu16Test                    7
+MotionDeviceTest              4
+ClockDeviceTest               1
+DcpuFixtureProgramTest        2
+DcpuRuntimeBridgeTest         1
 ```
 
 ## 2. 真实客户端
@@ -79,6 +89,12 @@ SwarmieSpawnEggDataTest       3
 | 配方解锁/自动填充/合成 | C | `Unlocked 1 recipe(s)`；配方书填充 3×3 网格；输出合成 |
 | 右键生成 | C | 新 `ROBOT_LOADED` `ff69dd53…`；库存 `empty` |
 | Python SDK 发现 + 指定 UUID 飞行/停止/取消 | C | 15 台机器人；`SUCCEEDED`/`SUCCEEDED`/`CANCELLED`；重连 `latest=63 missed=false` |
+| Inventory + explicit block observation | C | 9 个有序槽位；`air`、`andesite`、`UNLOADED`、`OUT_OF_BOUNDS`；无副作用 |
+| Python SDK inventory/block | C | 只读；`selectedSlot=0`；`UNLOADED` 不当成空气 |
+| 最小农业工作流 | C | farmland + 16 seeds -> 消耗 1 seed；上方生成 crop；unloaded target FAILED 且无 mutation |
+| DCPU guest motion bridge | C | MMIO timed flight；Entity 实际移动 1.1 blocks；终态 IRQ；cleanup 停止 VM |
+| DCPU remote-motion exclusion | C | guest 持有 motion 时 setpoint/TIMED_FLIGHT 返回 `MOTION_CHANNEL_BUSY` |
+| DCPU disabled gate | C | `development=true, configured=false` -> disabled |
 | Python SDK 挖掘 smoke | C | 所选测试坐标返回 `MINE FAILED EXECUTION_FAILED 'target is air'`，被明确报告 |
 | 事件环实机溢出 | U | 未填满 1024；小容量 JUnit 已验证 |
 | 批量实机提交 | U | JUnit 已覆盖 batch 上限/逐条语义；无实机 batch 命令 |
@@ -94,7 +110,7 @@ SwarmieSpawnEggDataTest       3
 python -m unittest discover -s tools/sdk/tests -v
 ```
 
-44 项测试，无需启动 Minecraft。
+66 项测试，无需启动 Minecraft。
 
 | 项目 | 证据 | 结果 |
 |---|---|---|
@@ -135,7 +151,7 @@ python -m unittest discover -s tools/sdk/tests -v
 - 真实客户端：刷怪蛋可获取并在创造搜索中找到；配方已解锁并通过配方书
   在 3×3 网格中合成；右键生成新机器人且库存为空；
 - Python SDK（仅标准库）：明确 UUID 机器人、命令句柄、取消、感知 epoch/遗漏的
-  重连，以及 44 项 mock-server 测试；
+  重连，以及 66 项 mock-server 测试；
 - 真实客户端：SDK 发现、指定 UUID 飞行到终态、停止、取消和重连均通过
   localhost 传输验证。
 

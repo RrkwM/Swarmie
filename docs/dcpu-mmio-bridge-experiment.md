@@ -3,7 +3,8 @@
 > Status: **architecture spike / limited subset experiment**, not a complete DCPU
 > emulator and not a public API commitment.
 >
-> Branch: `experiment/dcpu-mmio-bridge`
+> Branch: `main` after merging `feature/api-v1-state-motion` and
+> `experiment/dcpu-mmio-bridge`
 > Date: 2026-11-02
 
 ## 1. Question
@@ -204,10 +205,6 @@ serverTick 314:
 robot state after: (-23.4, 72.0, 1.5), velocity (0,0,0)
 remote setpoint: MOTION_CHANNEL_BUSY
 remote TIMED_FLIGHT: MOTION_CHANNEL_BUSY
-
-cleanup: DCPU experiment stopped
-         vm=HALTED, status=READY, commandId=-1, interrupts=0
-         ram1003=2, ram1004=0x1234
 ```
 
 The Entity moved 1.1 blocks from the guest command, stopped with zero velocity,

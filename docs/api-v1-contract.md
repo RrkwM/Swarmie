@@ -1103,7 +1103,7 @@ Status meanings:
 | Action accepted/running/terminal/cancel | **SUPPORTED** | `SubmitAck`, `CommandState`, `CancelAck`, runtime transitions (`SwarmieRuntime.java:233-361`), SDK handle tests (`tools/sdk/tests/test_client.py:86-241`). |
 | Batch action submission | **PARTIAL** | Contract `BatchSubmission`/`BatchSubmitAck` and `AdapterSession.submitBatch` exist (`AdapterSession.java:246`), but the JSONL transport and SDK expose single submit only. |
 | Action timeout | **PARTIAL** | Client `WaitTimeout` exists; server has no general action watchdog; `ErrorCode.TIMEOUT` is defined but unused (`docs/adapter-command-specs.md`). |
-| Side-effect confirmation | **MISSING** | `CommandResult` has only state/error/message (`CommandResult.java:3-10`); no post-action observation or effect evidence. Native `destroyBlock` success is not a world snapshot. |
+| Side-effect confirmation | **PARTIAL** | `CommandResult` has only state/error/message; `inventory` and `observe_block` now provide public post-action observation for those resources (`docs/farming-workflow.md`), but there is no generic effect-evidence payload or container/item-component confirmation. |
 | Resource conflict semantics | **MISSING** | Per-robot FIFO serializes actions (`SwarmieRuntime.java:25,233,318`); no resource model or `RESOURCE_CONFLICT`. |
 | `COMMAND_*` / `ROBOT_*` events | **SUPPORTED** | `RobotEventType` and `RobotEvent`; listener emits accepted/started/terminal (`AdapterSession.java:498-575`); runtime event tests. |
 | Event sequence/epoch/missed | **SUPPORTED** | `RobotEvent` comment/fields (`RobotEvent.java:3-16`), `EventBatch` (`EventBatch.java:5-16`), event store ring capacity 1024 and `missed` logic (`AdapterEventStore.java:17,70-91`); `AdapterEventStoreTest`, SDK gap tests. |

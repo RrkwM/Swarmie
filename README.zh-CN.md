@@ -25,8 +25,7 @@ Swarmie 增加了一个真实的 Minecraft `Entity`，包含：
 - 纯 Java `:contract` 模块：公共 Adapter 提交、取消、结果、生命周期事件、
   幂等与批量契约；
 - 有界注册表/事件存储，以及默认关闭的 localhost JSONL 开发传输；
-- 仅用标准库的 Python SDK：机器人发现、精确 UUID 选择、提交/等待/取消，
-  以及感知 epoch/遗漏的恢复。
+- 仅用标准库的 Python SDK：机器人发现、精确 UUID 选择、self-state、库存、显式方块观察、提交/等待/取消，以及感知 epoch/遗漏的恢复。
 
 它不是 AI、寻路、任务编排、GUI 容器或远程网络项目。
 
@@ -39,7 +38,7 @@ Swarmie 增加了一个真实的 Minecraft `Entity`，包含：
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | 通过 |
-| JUnit | 46 项通过 |
+| JUnit | 71 项通过 |
 | Release JAR | `swarmie-0.1.0.jar` |
 | JAR SHA-256 | `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | 开发构建 | `swarmie-0.1.1-SNAPSHOT.jar` |

@@ -91,6 +91,10 @@ World: disposable `New World`, real integrated server.
 | Python SDK discovery + explicit-UUID fly/stop/cancel | C | 15 robots; `SUCCEEDED`/`SUCCEEDED`/`CANCELLED`; reconnect `latest=63 missed=false` |
 | Inventory snapshot + explicit block observation | C | 9 ordered slots; `air`, `andesite`, `UNLOADED`, `OUT_OF_BOUNDS`; no mutation |
 | Python SDK inventory/block observation | C | read-only; `selectedSlot=0`; `UNLOADED` is not air |
+| Minimal farming workflow | C | farmland + 16 wheat seeds -> one seed consumed; crop above farmland; unloaded target FAILED without mutation |
+| DCPU guest motion bridge | C | MMIO timed flight; actual Entity moved 1.1 blocks; terminal IRQ handled; cleanup stopped VM |
+| DCPU remote-motion exclusion | C | setpoint and TIMED_FLIGHT rejected `MOTION_CHANNEL_BUSY` while guest owned motion |
+| DCPU disabled gate | C | `development=true, configured=false` -> experiment disabled |
 | Python SDK mining smoke | C | `MINE FAILED EXECUTION_FAILED 'target is air'` at the chosen test coordinates; reported explicitly |
 | Event-ring live overflow | U | not filled to 1024; small-capacity JUnit |
 | Batch live submission | U | JUnit covers limits/per-item semantics; no live batch command |
