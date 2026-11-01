@@ -6,46 +6,48 @@ Swarmie 的重要变化记录在此。格式参考
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 和
 [Semantic Versioning](https://semver.org/)。
 
-## [Unreleased]
+## [0.1.1] - 2026-11-02
+
+pre-1.0 功能版本。Adapter 契约仍为 `0.1`；本次新增契约类型和 JSONL 操作为向后兼容追加。
 
 ### 新增
 
-- 可合成物品 `swarmie:swarmie_spawn_egg`（未发布的 `0.1.1` 版本线）：
-  - 有序合成：4 铁锭、4 红石、1 铜锭；
-  - 显示在原版“刷怪蛋”创造模式标签页；
-  - 使用后创建**新**机器人：新 UUID、空 9 槽库存；不会捕获、召回或恢复已有机器人；
-  - `/summon swarmie:swarmie` 行为不变。
-- 物品定义、模型、16×16 纹理、`en_us`/`zh_cn` 名称和配方解锁进度。
-- 物品定义/模型/配方/进度/语言键的数据契约 JUnit（共 46 项测试）。
-- 仅用标准库的 Python SDK（`tools/sdk/swarmie`）：
-  - `SwarmieClient` 发现/事件/会话、精确 UUID 的 `Robot`、区分 ack/终态的
-    `CommandHandle`、超时、取消，以及感知 epoch/遗漏的重连；
-  - 类型化命令与结构化错误：拒绝提交、未知取消、事件遗漏和会话变化；
-  - 4 个可运行示例和 44 项 mock-server unittest。
-- 双语 Python SDK 文档，并更新传输/开发者文档。
+- API v1 self-state：位置、原生速度、yaw/pitch、维度、生命周期、`serverEpoch` 与 `serverTick` freshness。
+- 持久速度 setpoint 通道：latest-wins、revision、`0.35` blocks/tick clamp、clear/减速，以及与 legacy `TIMED_FLIGHT`/`STOP` 的互斥所有权。
+- 9 槽有序库存快照、selected slot 和稳定的 tick 边界数据。
+- 显式单方块观察：`OK`、`UNLOADED`、`OUT_OF_BOUNDS`、`INVALID`、`UNSUPPORTED`、`ERROR`；不可用位置不会伪装成空气。
+- 仅标准库 Python SDK：精确 UUID 机器人、发现、self-state、库存、方块观察、setpoint、动作句柄、取消、事件，以及感知 epoch/遗漏的重连和结构化错误。
+- 可合成 `swarmie:swarmie_spawn_egg`（4 铁锭、4 红石、1 铜锭）、配方解锁、物品模型/纹理和 `en_us`/`zh_cn` 名称；使用后创建新 UUID、空库存的机器人。
+- `/swarmie help`，包含 `flight`、`actions`、`inventory`、`query`、`adapter`、`lifecycle`，并明确标记为 OP 调试命令。
+- `docs/api-current.md`：当前 Python/JSONL 已实现能力的 pre-stable 速查。
+- 已验证的最小农业准备流程：读取 selected inventory、观察 farmland、使用小麦种子，再读取库存和作物方块。
+- test-only DCPU-16/MMIO bridge spike：pure-Java `SET`/`IAS`/`RFI` 子集、motion/clock MMIO、guest → MMIO → 现有 Runtime → Entity 运动、终态/中断/ACK/cleanup；guest 持有 motion 时拒绝远程 setpoint/legacy motion。
+- PCI-inspired SDB v0 设备总线规范草案：配置空间、slot、BAR、capability、IRQ、生命周期、fault 和玩家驱动职责；尚无实现。
+- 新白/青机器人模型：黑色面屏、四片独立 idle 翼、视觉上下浮动、0.45 × 0.65 碰撞箱（每方块 2×2 个）。
 
-### 文档
+### 变更
 
-- README 拆分为简短入口页；
-- 新增 canonical [玩家指南](docs/player-guide.zh-CN.md) 与
-  [开发者指南](docs/developer-guide.zh-CN.md)；
-- 发布 GitHub Wiki 导航、玩家/开发者摘要、安装和 FAQ；
-- 匿名化公开树中的维护者本机绝对路径；
-- 公开文档增加英文默认版本和中文 `.zh-CN` 版本。
+- 实体位置同步从每 3 tick 改为每 tick（`updateInterval(1)`），消除低速位置跳动。
+- 文档刷新当前 API、help、测试数量，以及 public/experimental/internal 的边界。
+- 旧 `LocalSensor` 前向扫描能力已明确标记为 internal/debug，不是公共 Sensor API，也不属于 SDB。
 
 ### 已验证
 
-- 46 项 JUnit（`test --rerun-tasks`）；
-- 真实客户端（Minecraft 26.3，disposable 世界）：
-  - 刷怪蛋以 `Swarmie Spawn Egg` 名称发放，并可在创造搜索中找到；
-  - `/recipe give` 解锁配方；配方书自动填充 3×3 铁/红石/铜网格，输出合成刷怪蛋；
-  - 右键刷怪蛋会记录新的 `ROBOT_LOADED`，`/swarmie inventory show` 显示空库存；
-  - 创造模式不消耗刷怪蛋（原版刷怪蛋行为）。
-- 44 项 Python SDK 测试（针对可控 mock server）。
-- 真实客户端：SDK 发现、指定 UUID 飞行到终态、停止、取消和重连均通过
-  localhost 传输验证。
-- 仍未验证：专用服务器启动、第二客户端同步和其余碰撞边界。
+- 75 项 Java main 测试、12 项 contract 测试（`test --rerun-tasks`）。
+- 66 项 Python SDK/mock-server 测试。
+- 33 项 audit 测试；完整性校验 `errors=0`、`review_findings=0`。
+- 真实 integrated server：生命周期、state/setpoint、库存/方块观察、农业准备、DCPU timed flight/终态 IRQ/ACK、远程 motion 拒绝和 cleanup。
+- Release JAR：`swarmie-0.1.1.jar`，238,293 bytes，SHA-256 `0913341d63e587200d5bbccc91e1309e4ee7297e36abaa31ece56d60490ed031`。
 
+### 已知限制
+
+- DCPU 是指令预算子集，不是完整 DCPU-16；没有 assembler、cartridge、持久化、NIC 或 UI。
+- SDB v0 仅为草案；没有设备总线、block-probe 设备或第三方 provider 实现。
+- `LocalSensor` 是 internal/debug，不是玩家定义的 Sensor 系统。
+- 没有通用农业、寻路、任务调度、orientation setpoint 或公共 region/entity/sensor observation。
+- 不支持 GUI 容器、库存转移或物品组件。
+- 专用服务器启动、第二客户端同步和部分碰撞边界仍未验证。
+- localhost JSONL 没有认证、TLS 或远程绑定。
 ## [0.1.0] - 2026-10-28
 
 首个公开版本。pre-1.0：公共 Adapter 契约和命令语义尚不稳定。

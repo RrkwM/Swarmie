@@ -19,7 +19,7 @@ English | [简体中文](test-matrix.zh-CN.md)
 | Total | A | **87 passed** |
 | No-cache test | A | `cleanTest test --no-build-cache` passed |
 | Offline build | S | `--offline build` passed |
-| 0.1.0 release JAR | S | 162,555 bytes, SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
+| 0.1.1 release JAR | S | 238,293 bytes, SHA-256 `0913341d63e587200d5bbccc91e1309e4ee7297e36abaa31ece56d60490ed031` |
 | Spawn egg item/model/recipe/advancement/lang data | A | 3 data-contract tests passed |
 | Python SDK (mock server) | P | 66 passed |
 

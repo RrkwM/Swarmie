@@ -6,56 +6,82 @@ All notable changes to Swarmie are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.1] - 2026-11-02
+
+Pre-1.0 feature release. The Adapter contract remains `0.1`; the new contract
+types and JSONL operations are backward-compatible additions.
 
 ### Added
 
-- Craftable `swarmie:swarmie_spawn_egg` item (unreleased `0.1.1` line):
-  - shaped recipe: four iron ingots, four redstone and one copper ingot;
-  - shown in the vanilla Spawn Eggs creative tab;
-  - using it creates a **new** robot with a fresh UUID and an empty nine-slot
-    inventory; it does not capture, recall or restore an existing robot;
-  - `/summon swarmie:swarmie` is unchanged.
-- Item definition, model, 16×16 texture, `en_us`/`zh_cn` names and a
-  recipe-unlock advancement.
-- Data-contract JUnit coverage for the item definition, model, recipe,
-  advancement and lang keys (46 tests total).
-- Standard-library Python SDK (`tools/sdk/swarmie`):
-  - `SwarmieClient` discovery/events/session, explicit-UUID `Robot`,
-    `CommandHandle` with ack/result separation, timeout, cancel and
-    epoch/gap-aware reconnect;
-  - typed commands and structured errors for rejected submissions, unknown
-    cancels, event gaps and session changes;
-  - four runnable examples and 44 mock-server unittest tests.
-- Bilingual Python SDK guide and updated transport/developer documentation.
+- API v1 self-state: position, native velocity, yaw/pitch, dimension, lifecycle,
+  `serverEpoch` and `serverTick` freshness.
+- Persistent velocity setpoint channel: latest-wins updates, revision,
+  `0.35` blocks/tick clamp, clearing/deceleration and exclusive ownership with
+  legacy `TIMED_FLIGHT`/`STOP`.
+- Nine-slot ordered inventory snapshots, selected-slot reporting and a stable
+  tick boundary snapshot.
+- Explicit single-block observation with `OK`, `UNLOADED`, `OUT_OF_BOUNDS`,
+  `INVALID`, `UNSUPPORTED` and `ERROR`; unavailable positions are not reported
+  as air.
+- Standard-library Python SDK (`tools/sdk/swarmie`): exact-UUID robots,
+  discovery, self-state, inventory, block observation, setpoints, action
+  handles, cancellation, events, epoch/gap-aware reconnect and structured
+  errors.
+- Craftable `swarmie:swarmie_spawn_egg` (four iron ingots, four redstone, one
+  copper ingot), recipe unlock, item model/texture and `en_us`/`zh_cn` names.
+  Using it creates a new robot with a fresh UUID and empty inventory.
+- `/swarmie help` with `flight`, `actions`, `inventory`, `query`, `adapter` and
+  `lifecycle` topics, explicitly marked as OP-level debug commands.
+- `docs/api-current.md`: a pre-stable quick reference for the currently
+  implemented Python/JSONL surface.
+- Verified minimal farming-preparation workflow: inspect selected inventory,
+  observe farmland, use a wheat seed, then re-read inventory and the crop block.
+- Test-only DCPU-16/MMIO bridge spike:
+  - pure-Java `SET`/`IAS`/`RFI` subset;
+  - motion and clock MMIO devices;
+  - player guest → MMIO → existing `SwarmieRuntime` → Entity movement;
+  - terminal status, one guest interrupt, ACK and cleanup;
+  - remote setpoint/legacy motion rejected while the guest owns motion.
+- Draft PCI-inspired SDB v0 device-bus specification:
+  configuration space, slots, BARs, capabilities, IRQ control, lifecycle,
+  fault and player-driver responsibilities. No SDB implementation yet.
+- New white/cyan robot model with a dark face screen, four independent idle
+  wings, a visual hover bob and a 0.45 × 0.65 hitbox (2×2 robots per block).
 
-### Documentation
+### Changed
 
-- Split the public README into a short landing page.
-- Added canonical [Player Guide](docs/player-guide.md) and
-  [Developer Guide](docs/developer-guide.md).
-- Published GitHub Wiki navigation, player/developer summaries, installation
-  and FAQ pages.
-- Added English-default bilingual documentation; Simplified Chinese versions use
-  `.zh-CN` files and `-zh-CN` Wiki pages.
-- Anonymized maintainer-local absolute paths in the public tree.
+- Entity position updates now use `updateInterval(1)` instead of three ticks,
+  removing visible low-speed position stepping.
+- Documentation refreshed for the current API, help commands, test counts and
+  the distinction between public, experimental and internal capabilities.
+- The legacy `LocalSensor` forward-scanning capability is documented as an
+  internal/debug capability, not a public Sensor API and not part of SDB.
 
 ### Verified
 
-- 46 JUnit tests (`test --rerun-tasks`).
-- Real client (Minecraft 26.3, disposable world):
-  - the egg is given as `Swarmie Spawn Egg` and is found in creative search;
-  - `/recipe give` unlocks the recipe; the recipe book auto-fills the 3×3
-    iron/redstone/copper grid and the output crafts the egg;
-  - right-clicking the egg logs a fresh `ROBOT_LOADED`, and
-    `/swarmie inventory show` reports an empty inventory;
-  - creative mode does not consume the egg (vanilla spawn-egg behavior).
-- 44 Python SDK tests against a controllable mock server.
-- Real client: SDK discovery, explicit-UUID flight to a terminal event, stop,
-  cancel and reconnect through the localhost transport.
-- Still unverified: dedicated-server startup, second-client sync and the
-  remaining collision boundaries.
+- 75 Java main tests and 12 contract tests (`test --rerun-tasks`).
+- 66 Python SDK/mock-server tests.
+- 33 audit tests; completeness validator reports `errors=0` and
+  `review_findings=0`.
+- Real integrated-server checks: lifecycle, state/setpoints, inventory and
+  block observation, farming preparation, DCPU timed flight/terminal IRQ/ACK,
+  remote-motion exclusion and cleanup.
+- Release JAR: `swarmie-0.1.1.jar`, 238,293 bytes, SHA-256
+  `0913341d63e587200d5bbccc91e1309e4ee7297e36abaa31ece56d60490ed031`.
 
+### Known limitations
+
+- DCPU support is an instruction-budget subset, not a complete DCPU-16
+  implementation; there is no assembler, cartridge, persistence, NIC or UI.
+- SDB v0 is a draft specification only; no device bus, block-probe device or
+  third-party provider is implemented.
+- `LocalSensor` is internal/debug; it is not a player-defined sensor system.
+- No general farming, pathfinding, task scheduling, orientation setpoint or
+  public region/entity/sensor observation.
+- GUI containers, inventory transfer and item components are not supported.
+- Dedicated-server startup, second-client synchronization and some collision
+  boundaries remain unverified.
+- The localhost JSONL transport has no authentication, TLS or remote binding.
 ## [0.1.0] - 2026-10-28
 
 First public release. This is a pre-1.0 release: the public Adapter contract

@@ -269,19 +269,19 @@ implementation(project(":contract"))
 构建后验证：
 
 ```text
-jar tf build/libs/swarmie-0.1.1-SNAPSHOT.jar | findstr dev/swarmie/contract
+jar tf build/libs/swarmie-0.1.1.jar | findstr dev/swarmie/contract
 ```
 
 实际 JAR 包含 `dev/swarmie/contract/*.class`（20 个类 + 目录条目）。
 `SwarmieMod` 启动时读取 `ContractVersion.CURRENT` 并记录版本，用于验证运行时
 类加载。
 
-实际验证（2026-10-27，0.1.0 发布产物）：
+实际验证（2026-11-02，0.1.1 发布产物）：
 
 ```text
-jar: build/libs/swarmie-0.1.0.jar
-size: 162,555 bytes
-sha256: fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a
+jar: build/libs/swarmie-0.1.1.jar
+size: 238,293 bytes
+sha256: 0913341d63e587200d5bbccc91e1309e4ee7297e36abaa31ece56d60490ed031
 
 client log:
   Swarmie initialized; registered entity type swarmie:swarmie

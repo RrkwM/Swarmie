@@ -9,6 +9,7 @@
 - 代码状态：**`main` 包含 pure-Java DCPU subset、MMIO motion/clock、Runtime bridge、dev gate、in-game help、API 速查、测试和实验文档；无新公开 API**
 - 视觉/同步：**实体缩小到 0.45 × 0.65，2×2 可放入一格；四片独立翼有 idle 摆动，渲染层有上下浮动；位置同步改为每 tick**
 - 设备总线：**SDB v0（PCI-inspired）规范已写入 `docs/device-bus-v0.md`：配置空间、BAR、capability、IRQ、生命周期、block_probe 与 mock provider；仍是 draft，无实现**
+- 发布状态：**0.1.1 pre-1.0 feature release；发布说明见 `docs/releases/v0.1.1.md`**
 - 环境状态：**runtime 为唯一活动工作区；未修改 ACL/系统设置；测试 transport/harness/DCPU/pause 配置已恢复默认**
 - 最后更新：2026-11-02
 - 验证报告：[`docs/api-v1-runtime-validation.md`](docs/api-v1-runtime-validation.md)；DCPU：[`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md)

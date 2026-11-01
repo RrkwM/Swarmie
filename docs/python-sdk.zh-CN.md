@@ -2,7 +2,7 @@
 
 # Python SDK
 
-> 状态：第一版（`0.1.0`），仅使用 Python 3.9+ 标准库，pre-1.0。
+> 状态：第一版（`0.1.1`），仅使用 Python 3.9+ 标准库，pre-1.0。
 > 它使用现有的 localhost JSONL 开发传输，不是远程或带认证的接口。
 
 ## 1. 这是什么
@@ -195,4 +195,4 @@ Minecraft 集成测试。
 - 只有四条命令；没有 MoveTo、库存、容器、命名、LOS 或批量；
 - 同步、单线程 API；没有 asyncio 或后台任务框架；
 - 无跨进程持久化：命令/事件历史仅属于当前服务器会话；
-- Python SDK `0.1.0` 与 Adapter 契约 `0.1` 均为 pre-stable。
+- Python SDK `0.1.1` 与 Adapter 契约 `0.1` 均为 pre-stable。

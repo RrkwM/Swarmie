@@ -7,12 +7,11 @@ Swarmie follows [Semantic Versioning 2.0.0](https://semver.org/).
 ## Current line
 
 ```text
-0.1.0 (latest release)
-0.1.1-SNAPSHOT (main, unreleased)
+0.1.1 (latest release)
 ```
 
-The `0.1.0` release remains the latest published artifact; `main` carries the
-unreleased `0.1.1-SNAPSHOT` line.
+The `0.1.1` release is the latest published artifact. The next development line
+will be `0.1.2-SNAPSHOT` after the release is published.
 
 `0.y.z` is initial development: the public Adapter contract and command
 semantics are still allowed to change. There is no 1.0 compatibility promise

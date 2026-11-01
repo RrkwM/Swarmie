@@ -2,9 +2,9 @@ English | [简体中文](player-guide.zh-CN.md)
 
 # Player Guide
 
-> Applies to **Swarmie 0.1.0** (latest release) and the unreleased
-> `0.1.1-SNAPSHOT` development build. This is an administrator/developer
-> preview, not a complete survival gameplay implementation.
+> Applies to **Swarmie 0.1.1** (latest release). This is an
+> administrator/developer preview, not a complete survival gameplay
+> implementation.
 
 ## 1. Requirements
 
@@ -21,9 +21,9 @@ Swarmie will not load without Fabric API or with a JDK below 25.
 
 1. Install Fabric Loader 0.20.1 for Minecraft 26.3.
 2. Download from [Releases](https://github.com/RrkwM/Swarmie/releases):
-   - `swarmie-0.1.0.jar`
-   - `swarmie-0.1.0.jar.sha256`
-3. Put `swarmie-0.1.0.jar` in the game `mods/` directory.
+   - `swarmie-0.1.1.jar`
+   - `swarmie-0.1.1.jar.sha256`
+3. Put `swarmie-0.1.1.jar` in the game `mods/` directory.
 4. Put the matching Fabric API JAR in `mods/` too.
 5. Start the game. The log should contain:
 
@@ -34,32 +34,23 @@ Swarmie initialized; registered entity type swarmie:swarmie
 ### Verify the download
 
 ```powershell
-Get-FileHash .\swarmie-0.1.0.jar -Algorithm SHA256
+Get-FileHash .\swarmie-0.1.1.jar -Algorithm SHA256
 ```
 
 Compare it with the SHA-256 published on the Release page.
 
 ## 3. How to get a robot
 
-### 0.1.0 release
+### 0.1.1 release
 
-The 0.1.0 release has no robot item or crafting recipe. An
-OP/permission-level-2 player must use:
-
-```mcfunction
-/summon swarmie:swarmie ~ ~ ~
-```
-
-### Unreleased 0.1.1-SNAPSHOT (main)
-
-The unreleased `0.1.1-SNAPSHOT` build adds a craftable spawn egg:
+The 0.1.1 release includes a craftable spawn egg:
 
 | Item | Recipe | Notes |
 |---|---|---|
 | Swarmie Spawn Egg (`swarmie:swarmie_spawn_egg`) | Shaped: 4 iron ingots, 4 redstone, 1 copper ingot | Spawn Eggs creative tab; creates a **new** robot with a fresh UUID and empty 9-slot inventory |
 
 Using the egg never captures, stores or restores an existing robot; it always
-creates a new one. `/summon` remains supported.
+creates a new one. `/summon swarmie:swarmie` remains supported for an OP.
 
 Find loaded robots:
 
@@ -222,7 +213,7 @@ operations.
 - no remote/public network; localhost JSONL is developer-only;
 - dedicated server, second client, LOS and some collision boundaries are
   unverified;
-- 0.1.0 is pre-1.0; behavior and Adapter contracts may change.
+- 0.1.1 is pre-1.0; behavior and Adapter contracts may change.
 
 ## 8. Next
 
