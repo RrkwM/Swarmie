@@ -20,8 +20,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Relative;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
@@ -54,6 +58,9 @@ public final class LifecycleTestHarness {
     private static UUID testRobotId;
     private static String lastCommand;
     private static String lastCommandId;
+    private static BlockPos setupTarget;
+    private static BlockState setupPrevious;
+    private static ServerLevel setupLevel;
 
     private static boolean playerSaved;
     private static ServerPlayer player;
@@ -146,6 +153,7 @@ public final class LifecycleTestHarness {
             case "reload" -> reload();
             case "remove" -> remove();
             case "dimension" -> dimension(request);
+            case "setup_farm" -> setupFarm(request);
             case "status" -> status();
             case "cleanup" -> cleanup(request);
             default -> failure("unknown action: " + action);
@@ -284,7 +292,52 @@ public final class LifecycleTestHarness {
         return result;
     }
 
+    /**
+     * Test fixture only: place a farmland block and seed stack for the workflow.
+     * It does not plant; planting must go through the public action/state path.
+     */
+    private static JsonObject setupFarm(JsonObject request) {
+        SwarmieEntity robot = currentRobot();
+        if (robot == null) {
+            return failure("test robot is not loaded");
+        }
+        if (!(robot.level() instanceof ServerLevel level)) {
+            return failure("test robot is not on a server level");
+        }
+        int x = request.has("x") ? request.get("x").getAsInt() : (int) Math.floor(robot.getX()) + 2;
+        int y = request.has("y") ? request.get("y").getAsInt() : (int) Math.floor(robot.getY());
+        int z = request.has("z") ? request.get("z").getAsInt() : (int) Math.floor(robot.getZ());
+        BlockPos target = new BlockPos(x, y, z);
+        if (!level.isLoaded(target)) {
+            return failure("target chunk is not loaded");
+        }
+        if (setupTarget == null) {
+            setupPrevious = level.getBlockState(target);
+        }
+        setupTarget = target;
+        setupLevel = level;
+        level.setBlockAndUpdate(target, Blocks.FARMLAND.defaultBlockState());
+        level.setBlockAndUpdate(target.above(), Blocks.AIR.defaultBlockState());
+        robot.inventory().setItem(0, new ItemStack(Items.WHEAT_SEEDS, 16));
+        robot.inventory().setSelectedSlot(0);
+        JsonObject result = success("setup_farm");
+        result.addProperty("robot", robot.getUUID().toString());
+        result.addProperty("targetX", target.getX());
+        result.addProperty("targetY", target.getY());
+        result.addProperty("targetZ", target.getZ());
+        result.addProperty("selectedSlot", robot.inventory().getSelectedSlot());
+        result.addProperty("seedCount", robot.inventory().getItem(0).getCount());
+        result.addProperty("tick", server.getTickCount());
+        return result;
+    }
+
     private static JsonObject cleanup(JsonObject request) {
+        if (setupTarget != null && setupPrevious != null && setupLevel != null) {
+            setupLevel.setBlockAndUpdate(setupTarget, setupPrevious);
+            setupTarget = null;
+            setupPrevious = null;
+            setupLevel = null;
+        }
         if (request.has("robot")) {
             try {
                 UUID id = UUID.fromString(request.get("robot").getAsString());

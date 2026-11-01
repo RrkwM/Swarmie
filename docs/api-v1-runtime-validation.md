@@ -540,3 +540,50 @@ read-only.
   out-of-bounds and unknown UUID as above.
 - No entity scan, local sensor, orientation setpoint, batch query or new action
   was added.
+
+## 12. Minimal farming workflow — 2026-11-02
+
+A public-SDK farming preparation workflow was exercised against a disposable
+integrated-server world. Fixture setup (farmland + sixteen wheat seeds) was
+performed by the existing default-off lifecycle harness; the workflow itself
+used only `state`, `inventory`, `observe_block` and `submit`.
+
+```text
+epoch 4827882152154627687, robot 50c72e67-3317-4a6a-b385-91dc60f1808f
+position (-24.5, 72.0, 1.5)
+
+before inventory: tick 756, selectedSlot 0, minecraft:wheat_seeds x16
+before farmland: (-23,72,1) OK minecraft:farmland
+before crop:     (-23,73,1) OK minecraft:air
+
+ack:      ACCEPTED QUEUED
+terminal: SUCCEEDED, sequence 14, serverTick 760
+after inventory: tick 760, minecraft:wheat_seeds x15
+after farmland:  (-23,72,1) OK minecraft:farmland
+after crop:      (-23,73,1) OK minecraft:wheat {age:0}, tick 762
+```
+
+The action succeeded, but the farmland block itself was unchanged; the crop
+appeared above it. The workflow therefore required the inventory decrement and
+the explicit crop observation, not just `SUCCEEDED`.
+
+Failure path with an unloaded target:
+
+```text
+target before: UNLOADED, block=None, "chunk is not loaded"
+ack:      ACCEPTED QUEUED
+terminal: FAILED EXECUTION_FAILED, sequence 18, serverTick 764
+target after:  UNLOADED, block=None
+inventory: tick 774, wheat_seeds x15
+```
+
+This is a terminal action failure after admission, not a request rejection and
+not a timeout; it left the inventory and target unchanged.
+
+The runnable example is
+[`tools/sdk/examples/06_farm_workflow.py`](../tools/sdk/examples/06_farm_workflow.py),
+and the reproducible procedure is
+[`docs/farming-workflow.md`](farming-workflow.md). This proves only one
+farmland/seed action with post-state confirmation; it does not claim general
+farming, harvesting, growth, water management, seed transfer or a new
+`place_block` primitive.

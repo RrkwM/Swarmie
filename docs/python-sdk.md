@@ -271,6 +271,7 @@ disconnected were retained.
 | [`03_cancel_command.py`](../tools/sdk/examples/03_cancel_command.py) | start a long flight, cancel it, read terminal state |
 | [`04_mine_block.py`](../tools/sdk/examples/04_mine_block.py) | optional world-changing mining example |
 | [`05_curve_flight.py`](../tools/sdk/examples/05_curve_flight.py) | repeated live-state reads and persistent velocity setpoints on a 3D curve |
+| [`06_farm_workflow.py`](../tools/sdk/examples/06_farm_workflow.py) | one farmland/seed preparation action with post-action inventory/block confirmation |
 
 Run one from the repository root:
 
@@ -278,6 +279,7 @@ Run one from the repository root:
 python tools/sdk/examples/01_list_robots.py
 python tools/sdk/examples/02_fly_and_stop.py --robot <uuid> --duration 20
 python tools/sdk/examples/05_curve_flight.py --robot <uuid> --duration 15
+python tools/sdk/examples/06_farm_workflow.py --robot <uuid> --farmland=-23,72,1
 ```
 
 The end-to-end smoke test remains at

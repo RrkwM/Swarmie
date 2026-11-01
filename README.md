@@ -155,6 +155,7 @@ Hard rules:
 | Four commands: state, side effects, limits | [`docs/adapter-command-specs.md`](docs/adapter-command-specs.md) |
 | Local JSONL/Python development transport | [`docs/local-transport.md`](docs/local-transport.md) |
 | Python SDK (discovery, commands, events) | [`docs/python-sdk.md`](docs/python-sdk.md) |
+| Minimal farming preparation workflow | [`docs/farming-workflow.md`](docs/farming-workflow.md) |
 | Semantic versioning and release process | [`docs/versioning.md`](docs/versioning.md) |
 | Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
 | Test evidence matrix | [`docs/test-matrix.md`](docs/test-matrix.md) |
