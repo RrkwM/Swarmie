@@ -12,7 +12,8 @@ class SwarmieCommandHelpTest {
         String text = String.join("\n", SwarmieCommandHelp.lines(""));
 
         for (String command : List.of(
-                "/swarmie help", "/swarmie fly", "/swarmie stop",
+                "/swarmie help", "/swarmie list", "/swarmie select", "/swarmie selected",
+                "/swarmie spawn", "/swarmie remove", "/swarmie fly", "/swarmie stop",
                 "/swarmie status", "/swarmie results", "/swarmie cancel",
                 "/swarmie mine", "/swarmie use", "/swarmie inventory",
                 "/swarmie query", "/swarmie sensor", "/swarmie adapter")) {
@@ -24,8 +25,8 @@ class SwarmieCommandHelpTest {
     }
 
     @Test
-    void topicHelpCoversFlightActionsInventoryQueryAdapterAndLifecycle() {
-        assertEquals(List.of("flight", "actions", "inventory", "query", "adapter", "lifecycle"),
+    void topicHelpCoversSelectionFlightActionsInventoryQueryAdapterAndLifecycle() {
+        assertEquals(List.of("selection", "flight", "actions", "inventory", "query", "adapter", "lifecycle"),
                 SwarmieCommandHelp.TOPICS);
         for (String topic : SwarmieCommandHelp.TOPICS) {
             List<String> lines = SwarmieCommandHelp.lines(topic);
@@ -37,6 +38,8 @@ class SwarmieCommandHelpTest {
                 .contains("not a normal gameplay API"));
         assertTrue(String.join("\n", SwarmieCommandHelp.lines("flight"))
                 .contains("bypasses the Runtime"));
+        assertTrue(String.join("\n", SwarmieCommandHelp.lines("selection"))
+                .contains("Selects by list index"));
     }
 
     @Test

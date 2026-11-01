@@ -9,6 +9,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import dev.swarmie.SwarmieEntity;
+import dev.swarmie.SwarmieMod;
 import dev.swarmie.adapter.SwarmieAdapter;
 import dev.swarmie.contract.CommandSpec;
 import dev.swarmie.contract.CommandSubmission;
@@ -37,11 +38,19 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Server-side debug interface over the real Runtime API. No flight physics or
@@ -52,6 +61,14 @@ public final class SwarmieCommands {
             new SimpleCommandExceptionType(Component.literal("Target is not a Swarmie"));
     private static final SimpleCommandExceptionType INVALID_VECTOR =
             new SimpleCommandExceptionType(Component.literal("Velocity components must be finite numbers"));
+    private static final SimpleCommandExceptionType NO_SWARM = new SimpleCommandExceptionType(
+            Component.literal("No loaded Swarmie; use /swarmie spawn or /swarmie list"));
+    private static final SimpleCommandExceptionType NO_SELECTION = new SimpleCommandExceptionType(
+            Component.literal("No explicitly selected Swarmie; use /swarmie list and /swarmie select"));
+    private static final Map<UUID, UUID> SELECTED = new HashMap<>();
+    private static final UUID CONSOLE_SELECTION = new UUID(0L, 0L);
+    private static final AABB ALL_LOADED = new AABB(
+            -3.0E7D, -1.0E7D, -3.0E7D, 3.0E7D, 1.0E7D, 3.0E7D);
 
     private SwarmieCommands() {
     }
@@ -61,6 +78,8 @@ public final class SwarmieCommands {
         root.requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
                 .then(Commands.literal("help")
                         .executes(context -> sendHelp(context, ""))
+                        .then(Commands.literal("selection")
+                                .executes(context -> sendHelp(context, "selection")))
                         .then(Commands.literal("flight")
                                 .executes(context -> sendHelp(context, "flight")))
                         .then(Commands.literal("actions")
@@ -73,6 +92,17 @@ public final class SwarmieCommands {
                                 .executes(context -> sendHelp(context, "adapter")))
                         .then(Commands.literal("lifecycle")
                                 .executes(context -> sendHelp(context, "lifecycle"))))
+                .then(Commands.literal("list")
+                        .executes(SwarmieCommands::listRobots))
+                .then(Commands.literal("select")
+                        .then(Commands.argument("robot", StringArgumentType.word())
+                                .executes(SwarmieCommands::selectRobot)))
+                .then(Commands.literal("selected")
+                        .executes(SwarmieCommands::selectedRobot))
+                .then(Commands.literal("spawn")
+                        .executes(SwarmieCommands::spawnRobot))
+                .then(Commands.literal("remove")
+                        .executes(SwarmieCommands::removeSelected))
                 // Low-level convenience: directly set the flight target, no Runtime record.
                 .then(Commands.literal("velocity")
                         .then(Commands.argument("targets", EntityArgument.entities())
@@ -80,8 +110,14 @@ public final class SwarmieCommands {
                                         .then(Commands.argument("y", DoubleArgumentType.doubleArg())
                                                 .then(Commands.argument("z", DoubleArgumentType.doubleArg())
                                                         .executes(SwarmieCommands::setVelocity))))))
-                // Queued Runtime commands.
+                // Queued Runtime commands. The short forms use the selected robot;
+                // the long forms keep selector-based multi-target control.
                 .then(Commands.literal("fly")
+                        .then(Commands.argument("x", DoubleArgumentType.doubleArg())
+                                .then(Commands.argument("y", DoubleArgumentType.doubleArg())
+                                        .then(Commands.argument("z", DoubleArgumentType.doubleArg())
+                                                .then(Commands.argument("duration", IntegerArgumentType.integer(1))
+                                                        .executes(SwarmieCommands::submitFlySelected)))))
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .then(Commands.argument("x", DoubleArgumentType.doubleArg())
                                         .then(Commands.argument("y", DoubleArgumentType.doubleArg())
@@ -89,12 +125,15 @@ public final class SwarmieCommands {
                                                         .then(Commands.argument("duration", IntegerArgumentType.integer(1))
                                                                 .executes(SwarmieCommands::submitFly)))))))
                 .then(Commands.literal("stop")
+                        .executes(SwarmieCommands::submitStopSelected)
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(SwarmieCommands::submitStop)))
                 .then(Commands.literal("status")
+                        .executes(SwarmieCommands::selectedStatus)
                         .then(Commands.argument("target", EntityArgument.entity())
                                 .executes(SwarmieCommands::status)))
                 .then(Commands.literal("results")
+                        .executes(SwarmieCommands::selectedResults)
                         .then(Commands.argument("target", EntityArgument.entity())
                                 .executes(SwarmieCommands::results)))
                 .then(Commands.literal("cancel")
@@ -181,8 +220,196 @@ public final class SwarmieCommands {
         return 1;
     }
 
-    private static int setVelocity(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        Vec3 velocity = readVector(context);
+    private static int listRobots(CommandContext<CommandSourceStack> context) {
+        List<SwarmieEntity> robots = loadedRobots(context.getSource());
+        if (robots.isEmpty()) {
+            context.getSource().sendFailure(Component.literal("No loaded Swarmie robots"));
+            return 0;
+        }
+        UUID selected = selectedId(context.getSource());
+        for (int i = 0; i < robots.size(); i++) {
+            SwarmieEntity robot = robots.get(i);
+            String line = "[" + i + "] " + robot.getUUID() + " " + robot.position()
+                    + (robot.getUUID().equals(selected) ? "  <selected>" : "");
+            context.getSource().sendSuccess(() -> Component.literal(line), false);
+        }
+        context.getSource().sendSuccess(
+                () -> Component.literal("Use /swarmie select <index|uuid>; commands use the selected robot."),
+                false);
+        return robots.size();
+    }
+
+    private static int selectRobot(CommandContext<CommandSourceStack> context) {
+        String value = StringArgumentType.getString(context, "robot");
+        List<SwarmieEntity> robots = loadedRobots(context.getSource());
+        SwarmieEntity target = null;
+
+        try {
+            int index = Integer.parseInt(value);
+            if (index >= 0 && index < robots.size()) {
+                target = robots.get(index);
+            }
+        }
+        catch (NumberFormatException ignored) {
+            // Not an index; try UUID/prefix below.
+        }
+
+        if (target == null) {
+            String prefix = value.toLowerCase(Locale.ROOT);
+            List<SwarmieEntity> matches = robots.stream()
+                    .filter(robot -> robot.getUUID().toString().startsWith(prefix))
+                    .toList();
+            if (matches.size() == 1) {
+                target = matches.get(0);
+            }
+            else if (matches.size() > 1) {
+                context.getSource().sendFailure(Component.literal("UUID prefix matches multiple Swarmies"));
+                return 0;
+            }
+        }
+
+        if (target == null) {
+            context.getSource().sendFailure(Component.literal(
+                    "Unknown Swarmie; use /swarmie list and /swarmie select <index|uuid>"));
+            return 0;
+        }
+
+        SELECTED.put(selectionKey(context.getSource()), target.getUUID());
+        SwarmieEntity selected = target;
+        context.getSource().sendSuccess(
+                () -> Component.literal("Selected Swarmie " + selected.getUUID() + " " + selected.position()),
+                false);
+        return 1;
+    }
+
+    private static int selectedRobot(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        SwarmieEntity robot = requireSelected(context);
+        context.getSource().sendSuccess(
+                () -> Component.literal("Selected Swarmie " + robot.getUUID() + " " + robot.position()),
+                false);
+        return 1;
+    }
+
+    private static int spawnRobot(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        ServerLevel level = source.getLevel();
+        Vec3 position = source.getPosition();
+        Entity sourceEntity = source.getEntity();
+        if (sourceEntity != null) {
+            Vec3 look = sourceEntity.getLookAngle();
+            position = position.add(look.x * 2.0D, 0.0D, look.z * 2.0D);
+        }
+
+        SwarmieEntity robot = SwarmieMod.SWARMIE.create(level, EntitySpawnReason.COMMAND);
+        if (robot == null) {
+            source.sendFailure(Component.literal("Could not create a Swarmie"));
+            return 0;
+        }
+        float yaw = sourceEntity == null ? 0.0F : sourceEntity.getYRot();
+        robot.snapTo(position.x, position.y, position.z, yaw, 0.0F);
+        if (!level.addFreshEntity(robot)) {
+            source.sendFailure(Component.literal("The world refused the Swarmie"));
+            return 0;
+        }
+
+        SELECTED.put(selectionKey(source), robot.getUUID());
+        UUID id = robot.getUUID();
+        source.sendSuccess(
+                () -> Component.literal("Created and selected Swarmie " + id + " at " + robot.position()), true);
+        return 1;
+    }
+
+    private static int removeSelected(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        SwarmieEntity robot = requireExplicitSelected(context);
+        UUID id = robot.getUUID();
+        robot.discard();
+        SELECTED.values().removeIf(id::equals);
+        context.getSource().sendSuccess(
+                () -> Component.literal("Removed Swarmie " + id), true);
+        return 1;
+    }
+
+    private static SwarmieEntity requireExplicitSelected(CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        UUID selected = selectedId(source);
+        if (selected == null) {
+            throw NO_SELECTION.create();
+        }
+        SwarmieEntity found = findRobot(source, selected);
+        if (found == null) {
+            SELECTED.remove(selectionKey(source));
+            throw NO_SELECTION.create();
+        }
+        return found;
+    }
+
+    private static SwarmieEntity requireSelected(CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        UUID key = selectionKey(source);
+        UUID selected = SELECTED.get(key);
+        if (selected != null) {
+            SwarmieEntity found = findRobot(source, selected);
+            if (found != null) {
+                return found;
+            }
+            SELECTED.remove(key);
+        }
+
+        SwarmieEntity nearest = nearestRobot(source);
+        if (nearest == null) {
+            throw NO_SWARM.create();
+        }
+        SELECTED.put(key, nearest.getUUID());
+        return nearest;
+    }
+
+    private static UUID selectionKey(CommandSourceStack source) {
+        Entity entity = source.getEntity();
+        return entity == null ? CONSOLE_SELECTION : entity.getUUID();
+    }
+
+    private static UUID selectedId(CommandSourceStack source) {
+        return SELECTED.get(selectionKey(source));
+    }
+
+    private static SwarmieEntity findRobot(CommandSourceStack source, UUID id) {
+        for (SwarmieEntity robot : loadedRobots(source)) {
+            if (robot.getUUID().equals(id)) {
+                return robot;
+            }
+        }
+        return null;
+    }
+
+    private static SwarmieEntity nearestRobot(CommandSourceStack source) {
+        List<SwarmieEntity> robots = loadedRobots(source);
+        if (robots.isEmpty()) {
+            return null;
+        }
+        List<SwarmieEntity> sameLevel = robots.stream()
+                .filter(robot -> robot.level() == source.getLevel())
+                .toList();
+        List<SwarmieEntity> candidates = sameLevel.isEmpty() ? robots : sameLevel;
+        return candidates.stream()
+                .min(Comparator.comparingDouble(robot -> robot.position().distanceToSqr(source.getPosition())))
+                .orElse(null);
+    }
+
+    private static List<SwarmieEntity> loadedRobots(CommandSourceStack source) {
+        List<SwarmieEntity> robots = new ArrayList<>();
+        for (ServerLevel level : source.getServer().getAllLevels()) {
+            for (Entity entity : level.getEntities((Entity) null, ALL_LOADED,
+                    entity -> entity instanceof SwarmieEntity)) {
+                robots.add((SwarmieEntity) entity);
+            }
+        }
+        robots.sort(Comparator.comparing(robot -> robot.getUUID().toString()));
+        return List.copyOf(robots);
+    }
+
+    private static int setVelocity(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {        Vec3 velocity = readVector(context);
         int affected = 0;
         for (Entity entity : EntityArgument.getEntities(context, "targets")) {
             if (entity instanceof SwarmieEntity swarmie) {
@@ -201,6 +428,15 @@ public final class SwarmieCommands {
     }
 
     private static int submitFly(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        return submitFlyFor(context, swarmieTargets(context, "targets"));
+    }
+
+    private static int submitFlySelected(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        return submitFlyFor(context, List.of(requireSelected(context)));
+    }
+
+    private static int submitFlyFor(CommandContext<CommandSourceStack> context, List<SwarmieEntity> targets)
+            throws CommandSyntaxException {
         Vec3 velocity = readVector(context);
         int duration = IntegerArgumentType.getInteger(context, "duration");
         if (duration <= 0 || duration > SwarmieRuntime.MAX_DURATION_TICKS) {
@@ -212,16 +448,14 @@ public final class SwarmieCommands {
         int accepted = 0;
         int rejected = 0;
         String lastError = null;
-        for (Entity entity : EntityArgument.getEntities(context, "targets")) {
-            if (entity instanceof SwarmieEntity swarmie) {
-                SubmissionResult result = swarmie.runtime().submitTimedFlight(velocity, duration);
-                if (result.accepted()) {
-                    accepted++;
-                }
-                else {
-                    rejected++;
-                    lastError = result.error();
-                }
+        for (SwarmieEntity swarmie : targets) {
+            SubmissionResult result = swarmie.runtime().submitTimedFlight(velocity, duration);
+            if (result.accepted()) {
+                accepted++;
+            }
+            else {
+                rejected++;
+                lastError = result.error();
             }
         }
 
@@ -244,19 +478,25 @@ public final class SwarmieCommands {
     }
 
     private static int submitStop(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        return submitStopFor(context, swarmieTargets(context, "targets"));
+    }
+
+    private static int submitStopSelected(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        return submitStopFor(context, List.of(requireSelected(context)));
+    }
+
+    private static int submitStopFor(CommandContext<CommandSourceStack> context, List<SwarmieEntity> targets) {
         int accepted = 0;
         int rejected = 0;
         String lastError = null;
-        for (Entity entity : EntityArgument.getEntities(context, "targets")) {
-            if (entity instanceof SwarmieEntity swarmie) {
-                SubmissionResult result = swarmie.runtime().submitStop();
-                if (result.accepted()) {
-                    accepted++;
-                }
-                else {
-                    rejected++;
-                    lastError = result.error();
-                }
+        for (SwarmieEntity swarmie : targets) {
+            SubmissionResult result = swarmie.runtime().submitStop();
+            if (result.accepted()) {
+                accepted++;
+            }
+            else {
+                rejected++;
+                lastError = result.error();
             }
         }
 
@@ -279,7 +519,14 @@ public final class SwarmieCommands {
     }
 
     private static int status(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        SwarmieEntity swarmie = requireSwarmie(context, "target");
+        return statusFor(context, requireSwarmie(context, "target"));
+    }
+
+    private static int selectedStatus(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        return statusFor(context, requireSelected(context));
+    }
+
+    private static int statusFor(CommandContext<CommandSourceStack> context, SwarmieEntity swarmie) {
         SwarmieRuntime runtime = swarmie.runtime();
         String current = runtime.getCurrentCommand()
                 .map(SwarmieCommands::describe)
@@ -293,7 +540,14 @@ public final class SwarmieCommands {
     }
 
     private static int results(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        SwarmieEntity swarmie = requireSwarmie(context, "target");
+        return resultsFor(context, requireSwarmie(context, "target"));
+    }
+
+    private static int selectedResults(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        return resultsFor(context, requireSelected(context));
+    }
+
+    private static int resultsFor(CommandContext<CommandSourceStack> context, SwarmieEntity swarmie) {
         List<SwarmieCommand> history = swarmie.runtime().getHistory();
         if (history.isEmpty()) {
             context.getSource().sendFailure(Component.literal("No retained command results"));
@@ -663,6 +917,17 @@ public final class SwarmieCommands {
             throw INVALID_VECTOR.create();
         }
         return new Vec3(x, y, z);
+    }
+
+    private static List<SwarmieEntity> swarmieTargets(CommandContext<CommandSourceStack> context, String argument)
+            throws CommandSyntaxException {
+        List<SwarmieEntity> targets = new ArrayList<>();
+        for (Entity entity : EntityArgument.getEntities(context, argument)) {
+            if (entity instanceof SwarmieEntity swarmie) {
+                targets.add(swarmie);
+            }
+        }
+        return targets;
     }
 
     private static SwarmieEntity requireSwarmie(CommandContext<CommandSourceStack> context, String argument)

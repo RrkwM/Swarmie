@@ -8,7 +8,7 @@ import java.util.List;
  */
 final class SwarmieCommandHelp {
     static final List<String> TOPICS = List.of(
-            "flight", "actions", "inventory", "query", "adapter", "lifecycle");
+            "selection", "flight", "actions", "inventory", "query", "adapter", "lifecycle");
 
     private SwarmieCommandHelp() {
     }
@@ -16,6 +16,7 @@ final class SwarmieCommandHelp {
     static List<String> lines(String topic) {
         return switch (topic) {
             case "" -> root();
+            case "selection" -> selection();
             case "flight" -> flight();
             case "actions" -> actions();
             case "inventory" -> inventory();
@@ -34,28 +35,52 @@ final class SwarmieCommandHelp {
                 "These are debug commands, not the public JSONL/Python API.",
                 "/swarmie help [topic]",
                 "  topics: " + String.join(", ", TOPICS),
-                "/swarmie fly <targets> <x> <y> <z> <duration>  queued timed velocity",
-                "/swarmie stop <targets>                    queued controlled stop",
-                "/swarmie velocity <targets> <x> <y> <z>    DEBUG: bypasses Runtime",
-                "/swarmie status <target>                   current/queued/retained",
-                "/swarmie results <target>                  latest five results",
-                "/swarmie cancel|cancelid|cancelall         cancel work",
-                "/swarmie mine <target> <x> <y> <z>         native break",
-                "/swarmie use <target> <x> <y> <z> <face>   native use-on-block",
-                "/swarmie inventory give|show ...           admin/debug inventory",
-                "/swarmie query block|region ...            read-only world query",
-                "/swarmie sensor scan <target> <range>      read-only local sensor",
-                "/swarmie adapter ...                       development diagnostics",
+                "/swarmie list                            loaded robots, numbered",
+                "/swarmie select <index|uuid>              select a robot",
+                "/swarmie selected                        show current selection",
+                "/swarmie spawn                           create/select a robot in front",
+                "/swarmie remove                          remove selected robot",
+                "/swarmie fly [targets] <x> <y> <z> <duration>",
+                "/swarmie stop [targets]                  omit targets for selection",
+                "/swarmie velocity <targets> <x> <y> <z>  DEBUG: bypasses Runtime",
+                "/swarmie status [target]                 omit target for selection",
+                "/swarmie results [target]                latest five results",
+                "/swarmie cancel|cancelid|cancelall       cancel work",
+                "/swarmie mine <target> <x> <y> <z>       native break",
+                "/swarmie use <target> <x> <y> <z> <face> native use-on-block",
+                "/swarmie inventory give|show ...         admin/debug inventory",
+                "/swarmie query block|region ...          read-only world query",
+                "/swarmie sensor scan <target> <range>    read-only local sensor",
+                "/swarmie adapter ...                     development diagnostics",
                 "DCPU/MMIO is test-only and has no in-game command.");
+    }
+
+    private static List<String> selection() {
+        return List.of(
+                "/swarmie list",
+                "  Lists loaded robots by index, UUID and position.",
+                "/swarmie select <index|uuid>",
+                "  Selects by list index, full UUID or unique UUID prefix.",
+                "/swarmie selected",
+                "  Shows the current selection.",
+                "/swarmie spawn",
+                "  Creates a robot two blocks in front of the source and selects it.",
+                "/swarmie remove",
+                "  Discards the selected robot.",
+                "",
+                "Short forms: /swarmie fly <x> <y> <z> <duration>, /swarmie stop,",
+                "/swarmie status and /swarmie results all use the selected robot.");
     }
 
     private static List<String> flight() {
         return List.of(
+                "/swarmie fly <x> <y> <z> <duration>       selected robot",
                 "/swarmie fly <targets> <x> <y> <z> <duration>",
                 "  x/y/z: velocity in blocks/tick; duration: 1..6000 ticks.",
                 "  Queued in Runtime; decelerates after the duration.",
                 "  This is velocity, not move-to-coordinates or pathfinding.",
                 "",
+                "/swarmie stop                              selected robot",
                 "/swarmie stop <targets>",
                 "  Queues a controlled stop and waits for low native speed.",
                 "",

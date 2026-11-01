@@ -71,6 +71,7 @@ Get-FileHash .\swarmie-0.1.1.jar -Algorithm SHA256
 
 ```mcfunction
 /swarmie help
+/swarmie help selection
 /swarmie help flight
 /swarmie help actions
 /swarmie help inventory
@@ -81,7 +82,34 @@ Get-FileHash .\swarmie-0.1.1.jar -Algorithm SHA256
 
 帮助会列出实际语法，并明确标注 `velocity`、`inventory give` 等调试操作。DCPU/MMIO 是 test-only 实验，没有游戏内命令。
 
+### 快速选择与增删改查
+
+常用操作不再需要实体 selector：
+
+```mcfunction
+/swarmie list
+/swarmie select 0
+/swarmie selected
+/swarmie spawn
+/swarmie remove
+```
+
+- `list`：列出已加载机器人，按 UUID 排序，带序号、UUID 和位置；
+- `select <index|uuid>`：按序号、完整 UUID 或唯一 UUID 前缀选择；
+- `selected`：显示当前选择；
+- `spawn`：在命令来源前方两格创建并选中一个新机器人；
+- `remove`：删除**明确选中**的机器人，不会自动删除最近机器人。
+
+没有选择时，`status`、`results`、`fly`、`stop` 会自动使用最近的已加载机器人。多机器人场景建议先 `select`。
+
 ### 飞行与停止
+
+```mcfunction
+/swarmie fly 0.1 0 0 20
+/swarmie stop
+```
+
+多目标仍可使用 selector 形式：
 
 ```mcfunction
 /swarmie fly @e[type=swarmie:swarmie] 0.1 0 0 20
@@ -100,12 +128,14 @@ duration      持续 tick，范围 1..6000
 ### 状态与结果
 
 ```mcfunction
-/swarmie status @e[type=swarmie:swarmie,limit=1]
-/swarmie results @e[type=swarmie:swarmie,limit=1]
+/swarmie status
+/swarmie results
 ```
 
 - `status`：当前命令、排队数、保留结果数；
 - `results`：最近 5 条命令结果。
+
+带 selector 的 `/swarmie status <target>` 和 `/swarmie results <target>` 仍然可用。
 
 ### 取消
 

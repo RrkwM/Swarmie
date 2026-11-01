@@ -75,6 +75,7 @@ administrator/developer debug commands, not the public JSONL/Python API.
 
 ```mcfunction
 /swarmie help
+/swarmie help selection
 /swarmie help flight
 /swarmie help actions
 /swarmie help inventory
@@ -87,7 +88,35 @@ Help lists the actual syntax and warns about debug-only operations such as
 `velocity` and `inventory give`. DCPU/MMIO is test-only and has no in-game
 command.
 
+### Quick selection and CRUD
+
+The common path no longer requires an entity selector:
+
+```mcfunction
+/swarmie list
+/swarmie select 0
+/swarmie selected
+/swarmie spawn
+/swarmie remove
+```
+
+- `list`: loaded robots, numbered by UUID, with UUID and position;
+- `select <index|uuid>`: select by list index, full UUID or unique UUID prefix;
+- `selected`: show the current selection;
+- `spawn`: create a robot two blocks in front of the source and select it;
+- `remove`: discard the **explicitly selected** robot (no auto-nearest delete).
+
+If nothing is selected, `status`, `results`, `fly` and `stop` use the nearest
+loaded robot. Select first when working with multiple robots.
+
 ### Flight and stop
+
+```mcfunction
+/swarmie fly 0.1 0 0 20
+/swarmie stop
+```
+
+The selector form still works for multiple robots:
 
 ```mcfunction
 /swarmie fly @e[type=swarmie:swarmie] 0.1 0 0 20
@@ -107,12 +136,15 @@ after the duration.
 ### Status and results
 
 ```mcfunction
-/swarmie status @e[type=swarmie:swarmie,limit=1]
-/swarmie results @e[type=swarmie:swarmie,limit=1]
+/swarmie status
+/swarmie results
 ```
 
 - `status`: current command, queued count and retained results;
 - `results`: the latest five command results.
+
+The selector form `/swarmie status <target>` and `/swarmie results <target>`
+remains available.
 
 ### Cancel
 

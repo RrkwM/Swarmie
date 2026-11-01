@@ -32,5 +32,15 @@ class SwarmieCommandRegistrationTest {
         assertNotNull(root.getChild("fly"));
         assertNotNull(root.getChild("inventory"));
         assertNotNull(root.getChild("adapter"));
+        assertNotNull(root.getChild("list"));
+        assertNotNull(root.getChild("select"));
+        assertNotNull(root.getChild("selected"));
+        assertNotNull(root.getChild("spawn"));
+        assertNotNull(root.getChild("remove"));
+        CommandNode<CommandSourceStack> fly = root.getChild("fly");
+        assertNotNull(fly.getChild("x"), "selected-robot fly form");
+        assertNotNull(fly.getChild("targets"), "selector fly form");
+        assertNotNull(root.getChild("stop").getCommand(), "selected-robot stop form");
+        assertNotNull(root.getChild("status").getCommand(), "selected-robot status form");
     }
 }
