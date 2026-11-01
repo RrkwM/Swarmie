@@ -61,10 +61,13 @@ public final class SwarmieMod implements ModInitializer {
     private static EntityType<SwarmieEntity> registerSwarmie() {
         EntityType<SwarmieEntity> type = EntityType.Builder
                 .of(SwarmieEntity::new, MobCategory.MISC)
-                .sized(0.8F, 0.7F)
-                .eyeHeight(0.45F)
-                .clientTrackingRange(5)
-                .updateInterval(3)
+                .sized(0.45F, 0.65F)
+                .eyeHeight(0.35F)
+                .clientTrackingRange(8)
+                // Position updates every server tick keep slow, low-speed
+                // movement continuous on the client. An interval of 3 produced
+                // visible three-tick position steps.
+                .updateInterval(1)
                 .build(SWARMIE_KEY);
 
         Registry.register(BuiltInRegistries.ENTITY_TYPE, SWARMIE_KEY, type);

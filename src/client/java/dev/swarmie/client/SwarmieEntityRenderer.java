@@ -13,7 +13,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 
 /**
- * 26.3 render-state based renderer. The model is a temporary geometric drone.
+ * 26.3 render-state based renderer for the white/cyan Swarmie shell.
  */
 public class SwarmieEntityRenderer extends EntityRenderer<SwarmieEntity, SwarmieRenderState> {
     public static final ModelLayerLocation LAYER = new ModelLayerLocation(
@@ -27,8 +27,8 @@ public class SwarmieEntityRenderer extends EntityRenderer<SwarmieEntity, Swarmie
     public SwarmieEntityRenderer(EntityRendererProvider.Context context) {
         super(context);
         this.model = new SwarmieEntityModel(context.bakeLayer(LAYER));
-        this.shadowRadius = 0.3F;
-        this.shadowStrength = 0.6F;
+        this.shadowRadius = 0.2F;
+        this.shadowStrength = 0.55F;
     }
 
     @Override
@@ -50,7 +50,15 @@ public class SwarmieEntityRenderer extends EntityRenderer<SwarmieEntity, Swarmie
             SubmitNodeCollector collector,
             CameraRenderState camera) {
         poseStack.pushPose();
+        // Idle hover: visual-only vertical bob; server position and hitbox do
+        // not move. The four wing parts have their own idle animation in the
+        // model setup.
+        float bob = (float) Math.sin(state.ageInTicks * 0.075F) * 0.025F;
+        poseStack.translate(0.0F, bob, 0.0F);
         poseStack.rotateDegrees(Axis.YP, 180.0F - state.yRot);
+        // Four robots fit in one block (2x2), so the visual shell is about
+        // 0.45 blocks wide; the entity hitbox is reduced to match.
+        poseStack.scale(0.62F, 0.62F, 0.62F);
         poseStack.scale(-1.0F, -1.0F, 1.0F);
         poseStack.translate(0.0F, -1.5F, 0.0F);
 
