@@ -6,7 +6,7 @@
 - 项目目标：Minecraft 26.3 + Fabric 的大规模并行可编程悬浮机器人
 - 当前阶段：**DCPU-16/MMIO bridge spike 已在真实 integrated server 跑通：guest 写 MMIO -> SwarmieRuntime -> Entity 运动 -> MMIO 终态/中断；仍为受限实验**
 - 运行验证：**真实客户端 + DCPU fixture + Python/JSONL：guest timed-flight、实际位置变化、终态中断、handler ACK、远程 motion 拒绝、cleanup 停止；禁用配置时 DCPU 不激活**
-- 代码状态：**`experiment/dcpu-mmio-bridge` 包含 pure-Java DCPU subset、MMIO motion/clock、Runtime bridge、dev gate、测试和实验文档；无新公开 API**
+- 代码状态：**`main` 包含 pure-Java DCPU subset、MMIO motion/clock、Runtime bridge、dev gate、测试和实验文档；无新公开 API**
 - 环境状态：**runtime 为唯一活动工作区；未修改 ACL/系统设置；测试 transport/harness/DCPU/pause 配置已恢复默认**
 - 最后更新：2026-11-02
 - 验证报告：[`docs/api-v1-runtime-validation.md`](docs/api-v1-runtime-validation.md)；DCPU：[`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md)
