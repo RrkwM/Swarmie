@@ -6,6 +6,8 @@ Swarmie 的重要变化记录在此。格式参考
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 和
 [Semantic Versioning](https://semver.org/)。
 
+## [Unreleased]
+
 ## [0.1.1] - 2026-11-02
 
 pre-1.0 功能版本。Adapter 契约仍为 `0.1`；本次新增契约类型和 JSONL 操作为向后兼容追加。

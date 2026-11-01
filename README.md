@@ -37,7 +37,7 @@ remote-network project.
 
 | Item | Status |
 |---|---|
-| Version | `0.1.1` (latest release, pre-1.0) |
+| Version | `0.1.2-SNAPSHOT` on `main`; latest release `0.1.1` (pre-1.0) |
 | Java | 25 required |
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
@@ -107,7 +107,7 @@ Windows:
 Output:
 
 ```text
-build/libs/swarmie-0.1.1.jar
+build/libs/swarmie-0.1.2-SNAPSHOT.jar
 ```
 
 Python SDK tests (standard library only; no Minecraft required):
@@ -169,10 +169,10 @@ Hard rules:
 
 ## Versioning and releases
 
-Swarmie follows [Semantic Versioning 2.0.0](https://semver.org/). Current
-`0.1.1` is the current feature release; `0.1.0` was the first public pre-1.0 release. See
-[`docs/versioning.md`](docs/versioning.md) for bump rules and the release
-checklist.
+Swarmie follows [Semantic Versioning 2.0.0](https://semver.org/). `main` is on
+`0.1.2-SNAPSHOT`; `0.1.1` is the current feature release and `0.1.0` was the
+first public pre-1.0 release. See [`docs/versioning.md`](docs/versioning.md) for
+bump rules and the release checklist.
 
 Release assets include the JAR and its `.sha256`.
 

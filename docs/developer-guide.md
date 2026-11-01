@@ -2,7 +2,7 @@ English | [简体中文](developer-guide.zh-CN.md)
 
 # Developer Guide
 
-> Swarmie `0.1.1` / Adapter contract `0.1`. This is a pre-1.0 project;
+> Swarmie `0.1.2-SNAPSHOT` / Adapter contract `0.1`. This is a pre-1.0 project;
 > the public contract is not yet stable.
 
 ## 1. Stack
@@ -82,7 +82,7 @@ Optional quick test world:
 Output:
 
 ```text
-build/libs/swarmie-0.1.1.jar
+build/libs/swarmie-0.1.2-SNAPSHOT.jar
 ```
 
 ## 4. Layers
