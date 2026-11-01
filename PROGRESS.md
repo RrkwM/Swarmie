@@ -4,12 +4,12 @@
 > 规范：[`SPEC.md`](SPEC.md) ｜ 环境设计：[`docs/environment-plan.md`](docs/environment-plan.md) ｜ 版本基线：[`docs/version-baseline.md`](docs/version-baseline.md) ｜ 归档：[`docs/archive/`](docs/archive/README.md)
 
 - 项目目标：Minecraft 26.3 + Fabric 的大规模并行可编程悬浮机器人
-- 当前阶段：**API v1 最小农业准备工作流已在真实 integrated server 跑通：inventory + explicit block observation + use_item_on_block + 动作后观察**
-- 运行验证：**真实客户端 + Python/JSONL 完成 state、velocity setpoint、inventory、explicit block observation、生命周期，以及 farmland/seed 成功路径和 unloaded-target 失败路径**
-- 代码状态：**`feature/api-v1-state-motion` 包含 inventory/block observation DTO、Adapter/JSONL/SDK 路径、test-only farm fixture、示例和回归测试**
+- 当前阶段：**最小农业工作流已通过；空间能力决策：无需新增 orientation/entity/sensor，现有 explicit block + state feedback 足够**
+- 运行验证：**真实客户端 + Python/JSONL 完成 inventory、explicit block observation、farmland/seed 成功路径、unloaded-target 失败路径，以及 no-focus 延迟测量**
+- 代码状态：**`feature/api-v1-state-motion` 包含 observation slice、test-only farm fixture、示例和空间能力决策文档；无新增空间能力**
 - 环境状态：**runtime 为唯一活动工作区；未修改 ACL/系统设置；测试 transport/harness/pause 配置已恢复默认**
 - 最后更新：2026-11-02
-- 2026-11-02 验证报告：[`docs/api-v1-runtime-validation.md`](docs/api-v1-runtime-validation.md)；农业流程：[`docs/farming-workflow.md`](docs/farming-workflow.md)
+- 验证报告：[`docs/api-v1-runtime-validation.md`](docs/api-v1-runtime-validation.md)；农业流程/决策：[`docs/farming-workflow.md`](docs/farming-workflow.md)
 
 ## 1. 文档角色
 

@@ -1127,7 +1127,9 @@ These must be resolved before v1 is declared implemented:
 1. **Orientation in v1.** Is orientation a required v1 setpoint or an optional
    capability? The design defines its semantics, but it is MISSING. If deferred,
    remove it from v1 `setpoints` and document the curve scenario's facing
-   limitation.
+   limitation. The 2026-11-02 farming workflow used an explicit block target and
+   succeeded without rotating; it provides no evidence that orientation is
+   required for that workflow.
 2. ~~Velocity clamping vs rejection.~~ **Resolved by implementation:** clamp
    with `clamped=true` and report the effective velocity. The ack contract is
    frozen for this slice.

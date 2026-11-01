@@ -587,3 +587,40 @@ and the reproducible procedure is
 farmland/seed action with post-state confirmation; it does not claim general
 farming, harvesting, growth, water management, seed transfer or a new
 `place_block` primitive.
+
+## 13. Spatial capability decision — 2026-11-02
+
+The farming workflow was re-measured on a real integrated server with no window
+focus, using the existing public path only.
+
+| Operation | p50 | p95 |
+|---|---:|---:|
+| `state()` | 0.372 ms | 0.576 ms |
+| `inventory()` | 0.324 ms | 0.499 ms |
+| `observe_block()` | 50.017 ms | 50.699 ms |
+
+Epoch `2553467471069402712`, robot
+`0c5a6391-c20d-401b-917e-b4e8fbf1e569`; 30 warm samples. Block reads are
+server-thread queued and therefore cost about one server tick. Action
+`UseItemOnBlock` was acknowledged in 3.748 ms, reached `SUCCEEDED` in 104.409 ms
+(server tick 410), and the post-action crop was visible on tick 417.
+
+Decision: **no new spatial capability is justified** by this workflow.
+
+- Explicit block target/face/hit was sufficient; no robot rotation was needed.
+- The target was a block, so entity observation would not help.
+- One known-coordinate block read was sufficient to confirm the crop; region or
+  local sensing was not needed.
+- The failure was an unloaded coordinate, already represented by `UNLOADED`, not
+  an alignment failure.
+- The earlier “SUCCEEDED but farmland unchanged” observation was a crop-above-
+  farmland semantic, not a range/aim problem.
+
+No orientation setpoint, explicit-entity observation, local/region sensor,
+pathfinding, target search or range-preflight capability was added. The existing
+limitation remains: the caller must already know a loaded, in-range block
+coordinate. If a future workflow needs target discovery or facing, that is a
+separate capability decision with its own evidence.
+
+See [`docs/farming-workflow.md`](farming-workflow.md) for the reproducible
+procedure and raw observations.

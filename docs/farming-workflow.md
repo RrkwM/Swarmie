@@ -114,3 +114,58 @@ Not claimed:
 - seed acquisition or inventory transfer;
 - general farming, pathfinding, area scanning or container use;
 - `place_block` or any new action/primitive.
+
+## 7. Spatial capability decision
+
+The real workflow does **not** justify a new spatial capability:
+
+- `use_item_on_block` takes an explicit block position, face and hit point; the
+  robot did not need to rotate toward the target. The action succeeded while
+  stationary with its existing yaw.
+- The target was a block, not an entity; entity observation would not add
+  information needed here.
+- One `observe_block` at the known farmland/crop coordinate was enough to
+  distinguish air from wheat. A region scan or local sensor was not needed.
+- The previous failure was an unloaded coordinate, already represented by
+  `UNLOADED`; it was not an alignment or range-discovery failure.
+- The confusing result was semantic, not spatial: the crop is placed above the
+  farmland, so the workflow observes the crop coordinate rather than assuming
+  the target block mutated.
+
+Not implemented, and not justified by this workflow: orientation setpoint,
+explicit-entity observation, local/region sensing, pathfinding, target search or
+range preflight. The existing limitation is that the caller must already know a
+loaded, in-range block coordinate; no automatic target discovery is promised.
+
+### Performance measurements
+
+Real integrated server, no window focus, localhost JSONL, epoch
+`2553467471069402712`, robot `0c5a6391-c20d-401b-917e-b4e8fbf1e569`.
+Thirty warm samples per read on the existing path:
+
+| Operation | p50 | p95 | min / max |
+|---|---:|---:|---:|
+| `Robot.state()` | 0.372 ms | 0.576 ms | 0.255 / 0.650 ms |
+| `Robot.inventory()` | 0.324 ms | 0.499 ms | 0.227 / 1.170 ms |
+| `Robot.observe_block()` | 50.017 ms | 50.699 ms | 44.768 / 51.647 ms |
+
+`observe_block` is executed on the server thread, so its latency is effectively
+one server tick (about 50 ms at 20 TPS). That is explicit and bounded by the
+request timeout, not a reason to add a broader observer.
+
+Action measurement for the same fixture:
+
+```text
+ack:      ACCEPTED QUEUED, 3.748 ms, server tick 407
+terminal: SUCCEEDED, sequence 7, server tick 410, wait 104.409 ms
+after:    inventory tick 416, seed count 15; crop tick 417, wheat
+```
+
+The action terminal result arrived after about two server ticks; post-action
+inventory/block snapshots followed on the next end tick. These measurements are
+for the local development transport and this small fixture, not a production
+latency guarantee.
+
+Conclusion: no spatial primitive is added. The correct next work, if any, is a
+separate capability decision for target discovery/alignment, not a silent
+extension of this workflow.
