@@ -60,6 +60,63 @@ def make_state(
     }
 
 
+def make_inventory(
+    robot_id: str,
+    epoch: int = 424242,
+    tick: int = 1,
+    selected_slot: int = 0,
+    items: Optional[Dict[int, Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    items = items or {}
+    slots = []
+    for index in range(9):
+        item = items.get(index)
+        slots.append(
+            {
+                "slot": index,
+                "itemId": item.get("itemId") if item else None,
+                "count": item.get("count", 0) if item else 0,
+            }
+        )
+    return {
+        "robotId": robot_id,
+        "serverEpoch": epoch,
+        "serverTick": tick,
+        "selectedSlot": selected_slot,
+        "slots": slots,
+    }
+
+
+def make_block_observation(
+    robot_id: str,
+    position: Dict[str, int],
+    status: str = "OK",
+    block_id: Optional[str] = "minecraft:stone",
+    properties: Optional[Dict[str, str]] = None,
+    air: bool = False,
+    reason: str = "",
+    epoch: int = 424242,
+    tick: int = 1,
+) -> Dict[str, Any]:
+    block = None
+    if status == "OK":
+        block = {
+            "position": position,
+            "blockId": block_id,
+            "properties": properties or {},
+            "air": air,
+        }
+    return {
+        "robotId": robot_id,
+        "position": position,
+        "status": status,
+        "block": block,
+        "reason": reason,
+        "serverEpoch": epoch,
+        "serverTick": tick,
+    }
+
+
 def make_event(
     epoch: int,
     sequence: int,
@@ -128,6 +185,8 @@ class MockSwarmieServer:
         self.events_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
         self.robots_handler: Optional[Callable[[], List[Dict[str, Any]]]] = None
         self.state_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+        self.inventory_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+        self.block_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
         self.setpoint_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
         self.error_for_op: Optional[Dict[str, Any]] = None
         self.push_before_ack: Optional[List[Dict[str, Any]]] = None
@@ -311,6 +370,49 @@ class MockSwarmieServer:
                     lifecycle=robot["lifecycle"],
                 ),
             })
+            return
+        if op == "inventory":
+            robot = self._find_robot(str(request.get("robot", "")))
+            if robot is None:
+                self.send_error(request_id, "ROBOT_NOT_FOUND", "robot is not registered")
+                return
+            if robot["lifecycle"] != "LOADED":
+                code = "ROBOT_REMOVED" if robot["lifecycle"] == "REMOVED" else "ROBOT_NOT_LOADED"
+                self.send_error(request_id, code, "robot is not available")
+                return
+            inventory = (
+                self.inventory_handler(request)
+                if self.inventory_handler is not None
+                else make_inventory(robot["robotId"], epoch=self.epoch)
+            )
+            self._send_locked({"type": "inventory", "id": request_id, "inventory": inventory})
+            return
+        if op == "observe_block":
+            robot = self._find_robot(str(request.get("robot", "")))
+            if robot is None:
+                self.send_error(request_id, "ROBOT_NOT_FOUND", "robot is not registered")
+                return
+            if robot["lifecycle"] != "LOADED":
+                code = "ROBOT_REMOVED" if robot["lifecycle"] == "REMOVED" else "ROBOT_NOT_LOADED"
+                self.send_error(request_id, code, "robot is not available")
+                return
+            position = request.get("position")
+            if not isinstance(position, dict) or not all(
+                isinstance(position.get(axis), int) and not isinstance(position.get(axis), bool)
+                for axis in ("x", "y", "z")
+            ):
+                self.send_error(request_id, "INVALID_ARGUMENT", "block position must contain integer x, y and z")
+                return
+            observation = (
+                self.block_handler(request)
+                if self.block_handler is not None
+                else make_block_observation(
+                    robot["robotId"], position, epoch=self.epoch
+                )
+            )
+            self._send_locked(
+                {"type": "block_observation", "id": request_id, "observation": observation}
+            )
             return
         if op == "setpoint":
             ack = (

@@ -1,13 +1,15 @@
 # API v1 Runtime Validation — State, Velocity Setpoints and Lifecycle
 
-> Validation dates: 2026-10-29 (state/setpoint slice), 2026-11-02 (lifecycle)
-> Implementation under test: `9f8d95e` plus the 2026-11-02 lifecycle fix
+> Validation dates: 2026-10-29 (state/setpoint slice), 2026-11-02 (lifecycle and
+> inventory/block observation)
+> Implementation under test: `9f8d95e` plus the 2026-11-02 lifecycle and
+> observation slices
 > Branch: `feature/api-v1-state-motion`
 > Result: real integrated-server validation completed for state, setpoints,
 > collision, action coexistence, legacy ownership, restart, chunk unload/reload,
-> permanent removal and dimension change. One lifecycle defect was found and
-> fixed. Independent yaw/pitch comparison and the dimension transition window
-> remain unverified.
+> permanent removal, dimension change, nine-slot inventory and explicit block
+> observation. One lifecycle defect was found and fixed. Independent yaw/pitch
+> comparison and the dimension transition window remain unverified.
 
 ## 1. Environment
 
@@ -74,6 +76,9 @@ acceptance observations still used the public JSONL/SDK path.
 | 28 | Independent yaw/pitch equality | **UNVERIFIED** | values read from server entity; no independent external comparator |
 | 29 | Temporarily unavailable state | **UNVERIFIED** | not separately reproducible |
 | 30 | Dimension transition observation window | **UNVERIFIED** | target was loaded before external sampling; transition window not observed |
+| 31 | Inventory snapshot (`slots`, selected slot, freshness) | **PASS — real runtime** | §11; 9 ordered slots, `flint_and_steel` x1, server epoch/tick |
+| 32 | Explicit block observation | **PASS — real runtime** | §11; air, andesite, `UNLOADED`, `OUT_OF_BOUNDS`; no fabricated block |
+| 33 | Observation read-only/no side effects | **PASS — real runtime** | §11; state/velocity/inventory unchanged after reads |
 
 ## 3. State evidence
 
@@ -256,15 +261,15 @@ and speed limits are uncompensated.
 
 ```text
 .\gradlew.bat test --offline --rerun-tasks
-main module: 51 passed, 0 failed
-contract module: 9 passed, 0 failed
+main module: 56 passed, 0 failed
+contract module: 12 passed, 0 failed
 ```
 
 ### Protocol/mock tests
 
 ```text
 python -m unittest discover -s tools\sdk\tests -v
-55 passed
+66 passed
 ```
 
 The in-process mock-server curve example also exited `0`. It remains a mock
@@ -475,3 +480,63 @@ new setpoint accepted revision 1
 
 The residual velocity is momentum; it decays without re-acceleration and only a
 new setpoint produces sustained motion.
+
+## 11. Inventory and block observation — 2026-11-02
+
+Target `95a8cfac-7b4c-4210-b34f-aee91ad6c764`, epoch
+`1114624977489722601`, dimension `minecraft:overworld`, position
+`(-24.5, 80.0, 3.5)`.
+
+### 11.1 Inventory
+
+```text
+state serverTick=302
+inventory serverEpoch=1114624977489722601 serverTick=303 selectedSlot=0
+slots:
+  0 minecraft:flint_and_steel count=1
+  1..8 empty
+```
+
+`Robot.inventory()` returned exactly nine ordered slots and the selected slot.
+Empty slots had no item id and count 0. The snapshot contained no raw Minecraft
+stack or item-component map.
+
+### 11.2 Block observation
+
+```text
+(-24, 79, 3)   OK, block=minecraft:air, air=true, serverTick=304
+(-24, 60, 3)   OK, block=minecraft:andesite, air=false, serverTick=305
+(100000, 64, 100000)
+               UNLOADED, block=None, reason="chunk is not loaded", serverTick=306
+(-24, 1000, 3) OUT_OF_BOUNDS, block=None, serverTick=307
+unknown UUID   RobotNotFound
+```
+
+`UNLOADED` and `OUT_OF_BOUNDS` were successful observations, not transport
+errors, and neither was converted to air. The block response carried the
+explicit coordinate, status, block id/properties/air summary when `OK`, reason
+otherwise, and server epoch/tick.
+
+### 11.3 Read-only check
+
+Immediately before and after the observation calls:
+
+```text
+state position = (-24.5, 80.0, 3.5)
+state velocity = (0, 0, 0)
+inventory slot 0 = flint_and_steel x1
+selectedSlot = 0
+```
+
+The observations changed neither position, velocity, inventory nor selected
+slot. The server tick advanced from 302 to 316 while the snapshots remained
+read-only.
+
+### 11.4 Test layers for this slice
+
+- Java: main 56 passed, contract 12 passed, 0 failed.
+- Python SDK/mock: 66 passed.
+- Real integrated server: inventory, air, solid block, unloaded chunk,
+  out-of-bounds and unknown UUID as above.
+- No entity scan, local sensor, orientation setpoint, batch query or new action
+  was added.

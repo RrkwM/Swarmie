@@ -32,11 +32,14 @@ from .errors import (
 from .models import (
     Ack,
     AckStatus,
+    BlockObservation,
+    BlockPos,
     CancelAck,
     CancelStatus,
     CommandResult,
     CommandState,
     Gap,
+    InventoryState,
     RobotInfo,
     RobotLifecycle,
     RobotState,
@@ -211,6 +214,52 @@ class SwarmieClient:
                 raise RobotNotLoaded(rid, exc.code) from exc
             raise
         return protocol.parse_state(response.get("state"))
+
+    def inventory(self, robot_id: str, timeout: Optional[float] = None) -> InventoryState:
+        """Read the stable nine-slot inventory snapshot for one exact UUID."""
+        rid = normalize_robot_id(robot_id)
+        try:
+            response = self._request(
+                {"op": "inventory", "robot": rid},
+                "inventory",
+                timeout,
+            )
+        except ServerError as exc:
+            self._raise_lifecycle_error(rid, exc)
+            raise
+        return protocol.parse_inventory(response.get("inventory"))
+
+    def observe_block(
+        self,
+        robot_id: str,
+        position: BlockPos,
+        timeout: Optional[float] = None,
+    ) -> BlockObservation:
+        """Read one explicit block position; a non-OK status is not air."""
+        rid = normalize_robot_id(robot_id)
+        if not isinstance(position, BlockPos):
+            raise ValueError("position must be a BlockPos")
+        try:
+            response = self._request(
+                {
+                    "op": "observe_block",
+                    "robot": rid,
+                    "position": position.to_wire(),
+                },
+                "block_observation",
+                timeout,
+            )
+        except ServerError as exc:
+            self._raise_lifecycle_error(rid, exc)
+            raise
+        return protocol.parse_block_observation(response.get("observation"))
+
+    @staticmethod
+    def _raise_lifecycle_error(robot_id: str, exc: ServerError) -> None:
+        if exc.code == "ROBOT_NOT_FOUND":
+            raise RobotNotFound(robot_id) from exc
+        if exc.code in {"ROBOT_NOT_LOADED", "ROBOT_REMOVED", "ROBOT_UNAVAILABLE"}:
+            raise RobotNotLoaded(robot_id, exc.code) from exc
 
     def set_velocity(
         self,
@@ -498,6 +547,14 @@ class Robot:
     def state(self, timeout: Optional[float] = None) -> RobotState:
         """Return live state, distinct from the registry metadata in ``info``."""
         return self._client.state(self.robot_id, timeout=timeout)
+
+    def inventory(self, timeout: Optional[float] = None) -> InventoryState:
+        """Return the stable nine-slot inventory snapshot."""
+        return self._client.inventory(self.robot_id, timeout=timeout)
+
+    def observe_block(self, position: BlockPos, timeout: Optional[float] = None) -> BlockObservation:
+        """Return one explicit block observation, including non-OK statuses."""
+        return self._client.observe_block(self.robot_id, position, timeout=timeout)
 
     def set_velocity(self, velocity: Vec3, timeout: Optional[float] = None) -> SetpointAck:
         """Set or replace the persistent velocity target."""

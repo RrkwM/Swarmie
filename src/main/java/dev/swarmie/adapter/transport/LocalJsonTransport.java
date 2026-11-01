@@ -4,10 +4,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.swarmie.adapter.AdapterSession;
 import dev.swarmie.adapter.SwarmieAdapter;
+import dev.swarmie.contract.BlockObservation;
+import dev.swarmie.contract.BlockPosDto;
 import dev.swarmie.contract.CancelAck;
 import dev.swarmie.contract.CommandSubmission;
 import dev.swarmie.contract.EventBatch;
 import dev.swarmie.contract.ErrorCode;
+import dev.swarmie.contract.InventoryState;
 import dev.swarmie.contract.RobotDescriptor;
 import dev.swarmie.contract.RobotId;
 import dev.swarmie.contract.RobotLifecycleState;
@@ -33,9 +36,11 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -246,6 +251,8 @@ public final class LocalJsonTransport implements AutoCloseable {
                             LocalJsonTransport.this.session.snapshotRobots()));
                     case "events" -> offer(TransportCodec.events(requestId, readEvents(request)));
                     case "state" -> offer(state(request, requestId));
+                    case "inventory" -> offer(inventory(request, requestId));
+                    case "observe_block" -> offer(observeBlock(request, requestId));
                     case "setpoint" -> offer(setpoint(request, requestId));
                     case "submit" -> offer(TransportCodec.ack(requestId, submit(request)));
                     case "cancel" -> offer(TransportCodec.cancelAck(requestId, cancel(request)));
@@ -286,6 +293,67 @@ public final class LocalJsonTransport implements AutoCloseable {
                         "robot state is not available yet");
             }
             return TransportCodec.state(requestId, state.get());
+        }
+
+        private String inventory(JsonObject request, String requestId) {
+            RobotId robot = TransportCodec.parseRobot(request);
+            Optional<RobotDescriptor> descriptor = LocalJsonTransport.this.session.findRobot(robot);
+            if (descriptor.isEmpty()) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_NOT_FOUND.name(),
+                        "robot is not registered");
+            }
+            RobotLifecycleState lifecycle = descriptor.get().lifecycle();
+            if (lifecycle == RobotLifecycleState.REMOVED) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_REMOVED.name(),
+                        "robot has been removed");
+            }
+            if (lifecycle == RobotLifecycleState.UNLOADED) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_NOT_LOADED.name(),
+                        "robot is not loaded");
+            }
+            Optional<InventoryState> inventory = LocalJsonTransport.this.session.readInventory(robot);
+            if (inventory.isEmpty()) {
+                return TransportCodec.error(requestId, ErrorCode.ROBOT_UNAVAILABLE.name(),
+                        "robot inventory is not available yet");
+            }
+            return TransportCodec.inventory(requestId, inventory.get());
+        }
+
+        private String observeBlock(JsonObject request, String requestId) {
+            RobotId robot = TransportCodec.parseRobot(request);
+            BlockPosDto position;
+            try {
+                position = TransportCodec.parseBlockPosition(request);
+            }
+            catch (IllegalArgumentException exception) {
+                return TransportCodec.error(requestId, ErrorCode.INVALID_ARGUMENT.name(),
+                        "block position must contain integer x, y and z");
+            }
+            try {
+                AdapterSession.BlockObservationResult result = LocalJsonTransport.this.session
+                        .requestBlockObservation(robot, position)
+                        .get(5, TimeUnit.SECONDS);
+                if (result.failed()) {
+                    return TransportCodec.error(requestId,
+                            result.error().name(), result.message());
+                }
+                BlockObservation observation = result.observation();
+                return TransportCodec.blockObservation(requestId, observation);
+            }
+            catch (TimeoutException exception) {
+                return TransportCodec.error(requestId, ErrorCode.TIMEOUT.name(),
+                        "block observation timed out on the server thread");
+            }
+            catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return TransportCodec.error(requestId, ErrorCode.INTERNAL_ERROR.name(),
+                        "block observation interrupted");
+            }
+            catch (ExecutionException exception) {
+                return TransportCodec.error(requestId, ErrorCode.INTERNAL_ERROR.name(),
+                        exception.getCause() == null ? "block observation failed"
+                                : exception.getCause().getMessage());
+            }
         }
 
         private String setpoint(JsonObject request, String requestId) {

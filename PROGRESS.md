@@ -4,12 +4,12 @@
 > 规范：[`SPEC.md`](SPEC.md) ｜ 环境设计：[`docs/environment-plan.md`](docs/environment-plan.md) ｜ 版本基线：[`docs/version-baseline.md`](docs/version-baseline.md) ｜ 归档：[`docs/archive/`](docs/archive/README.md)
 
 - 项目目标：Minecraft 26.3 + Fabric 的大规模并行可编程悬浮机器人
-- 当前阶段：**API v1 state/motion 分支的真实生命周期验证完成；0.1.0 仍是发布基线，API v1 尚未合并**
-- 运行验证：**真实客户端 + Python/JSONL 完成 state、velocity setpoint、碰撞、动作共存、legacy、restart，以及 chunk unload/reload、permanent removal、dimension change 和同 epoch 重连**
-- 代码状态：**`feature/api-v1-state-motion` 包含 lifecycle harness、setpoint 生命周期修复和回归测试；0.1.0 JAR 162,555 bytes 仍是历史发布资产**
+- 当前阶段：**API v1 首个可用观察切片：inventory + explicit block observation 已实现并完成真实 runtime 验证；0.1.0 仍是发布基线**
+- 运行验证：**真实客户端 + Python/JSONL 完成 state、velocity setpoint、inventory、explicit block observation（OK/air/UNLOADED/OUT_OF_BOUNDS），以及生命周期和重连**
+- 代码状态：**`feature/api-v1-state-motion` 包含 inventory/block observation DTO、Adapter/JSONL/SDK 路径、测试、lifecycle harness 和 setpoint 生命周期修复**
 - 环境状态：**runtime 为唯一活动工作区；未修改 ACL/系统设置；测试 transport/harness 配置已恢复默认关闭**
 - 最后更新：2026-11-02
-- 2026-11-02 生命周期验证报告：[`docs/api-v1-runtime-validation.md`](docs/api-v1-runtime-validation.md)（真实 runtime 与 unit/mock 分开记录）
+- 2026-11-02 验证报告：[`docs/api-v1-runtime-validation.md`](docs/api-v1-runtime-validation.md)（真实 runtime 与 unit/mock 分开记录）
 
 ## 1. 文档角色
 

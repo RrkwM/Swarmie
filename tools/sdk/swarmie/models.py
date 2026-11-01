@@ -8,7 +8,8 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from types import MappingProxyType
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 
 class AckStatus(str, Enum):
@@ -97,6 +98,96 @@ class Vec3:
 
     def __str__(self) -> str:
         return f"({self.x:g}, {self.y:g}, {self.z:g})"
+
+
+@dataclass(frozen=True)
+class BlockPos:
+    x: int
+    y: int
+    z: int
+
+    def __post_init__(self) -> None:
+        for axis in (self.x, self.y, self.z):
+            if isinstance(axis, bool) or not isinstance(axis, int):
+                raise ValueError("block position components must be integers")
+
+    def to_wire(self) -> Dict[str, int]:
+        return {"x": self.x, "y": self.y, "z": self.z}
+
+    def __str__(self) -> str:
+        return f"({self.x}, {self.y}, {self.z})"
+
+
+@dataclass(frozen=True)
+class InventorySlot:
+    slot: int
+    item_id: Optional[str]
+    count: int
+
+    def __post_init__(self) -> None:
+        if isinstance(self.slot, bool) or not isinstance(self.slot, int) or not 0 <= self.slot < 9:
+            raise ValueError("inventory slot must be in 0..8")
+        if isinstance(self.count, bool) or not isinstance(self.count, int) or self.count < 0:
+            raise ValueError("inventory count must be a non-negative integer")
+        if self.item_id is None:
+            if self.count != 0:
+                raise ValueError("an empty inventory slot must have count 0")
+        elif not isinstance(self.item_id, str) or not self.item_id or self.count == 0:
+            raise ValueError("a non-empty inventory slot needs an item id and positive count")
+
+    @property
+    def empty(self) -> bool:
+        return self.item_id is None
+
+
+@dataclass(frozen=True)
+class InventoryState:
+    """Stable nine-slot inventory snapshot with server-tick freshness."""
+
+    robot_id: str
+    server_epoch: int
+    server_tick: int
+    selected_slot: int
+    slots: Tuple[InventorySlot, ...]
+
+    def __post_init__(self) -> None:
+        if self.selected_slot < 0 or self.selected_slot >= 9:
+            raise ValueError("selected_slot must be in 0..8")
+        if len(self.slots) != 9:
+            raise ValueError("inventory must contain exactly 9 slots")
+        for index, slot in enumerate(self.slots):
+            if slot.slot != index:
+                raise ValueError("inventory slots must be ordered 0..8")
+
+
+class ObservationStatus(str, Enum):
+    OK = "OK"
+    UNLOADED = "UNLOADED"
+    OUT_OF_BOUNDS = "OUT_OF_BOUNDS"
+    INVALID = "INVALID"
+    UNSUPPORTED = "UNSUPPORTED"
+    ERROR = "ERROR"
+
+
+@dataclass(frozen=True)
+class BlockSnapshot:
+    position: BlockPos
+    block_id: str
+    properties: Mapping[str, str]
+    air: bool
+
+
+@dataclass(frozen=True)
+class BlockObservation:
+    """One explicit block read. Non-OK status never fabricates an air block."""
+
+    robot_id: str
+    position: BlockPos
+    status: ObservationStatus
+    block: Optional[BlockSnapshot]
+    reason: str
+    server_epoch: int
+    server_tick: int
 
 
 @dataclass(frozen=True)

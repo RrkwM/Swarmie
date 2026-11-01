@@ -27,7 +27,8 @@ Swarmie adds a real Minecraft `Entity` with:
 - a bounded registry/event store and a default-off localhost JSONL development
   transport;
 - a standard-library Python SDK for discovery, explicit-UUID selection,
-  submit/wait/cancel and epoch/gap-aware recovery.
+  self-state, inventory, explicit block observation, submit/wait/cancel and
+  epoch/gap-aware recovery.
 
 It is **not** an AI, pathfinding, task-orchestration, GUI-container or
 remote-network project.
@@ -41,7 +42,7 @@ remote-network project.
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | passing |
-| JUnit | 46 passing |
+| JUnit | 56 passing |
 | Release JAR | `swarmie-0.1.0.jar` |
 | JAR SHA-256 | `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | Development JAR | `swarmie-0.1.1-SNAPSHOT.jar` |
