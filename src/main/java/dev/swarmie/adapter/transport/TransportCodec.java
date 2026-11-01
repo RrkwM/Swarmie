@@ -7,12 +7,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializer;
+import dev.swarmie.contract.BlockObservation;
 import dev.swarmie.contract.BlockPosDto;
 import dev.swarmie.contract.CancelAck;
 import dev.swarmie.contract.CommandSpec;
 import dev.swarmie.contract.CommandSubmission;
 import dev.swarmie.contract.DirectionDto;
 import dev.swarmie.contract.EventBatch;
+import dev.swarmie.contract.InventoryState;
 import dev.swarmie.contract.RobotDescriptor;
 import dev.swarmie.contract.RobotId;
 import dev.swarmie.contract.RobotState;
@@ -57,6 +59,10 @@ public final class TransportCodec {
 
     public static RobotId parseRobot(JsonObject request) {
         return new RobotId(UUID.fromString(requireString(request, "robot")));
+    }
+
+    public static BlockPosDto parseBlockPosition(JsonObject request) {
+        return parseBlockPos(request, "position");
     }
 
     public static SetpointRequest parseSetpoint(JsonObject request) {
@@ -104,6 +110,18 @@ public final class TransportCodec {
     public static String state(String requestId, RobotState state) {
         JsonObject response = base("state", requestId);
         response.add("state", GSON.toJsonTree(state));
+        return GSON.toJson(response);
+    }
+
+    public static String inventory(String requestId, InventoryState inventory) {
+        JsonObject response = base("inventory", requestId);
+        response.add("inventory", GSON.toJsonTree(inventory));
+        return GSON.toJson(response);
+    }
+
+    public static String blockObservation(String requestId, BlockObservation observation) {
+        JsonObject response = base("block_observation", requestId);
+        response.add("observation", GSON.toJsonTree(observation));
         return GSON.toJson(response);
     }
 

@@ -5,12 +5,16 @@ Only the documented wire shape is accepted. Missing required fields raise
 """
 from __future__ import annotations
 
+from types import MappingProxyType
 from typing import Any, Dict, List, Optional
 
 from .errors import ProtocolError
 from .models import (
     Ack,
     AckStatus,
+    BlockObservation,
+    BlockPos,
+    BlockSnapshot,
     CancelAck,
     CancelStatus,
     CommandResult,
@@ -18,6 +22,9 @@ from .models import (
     CommandType,
     EventBatch,
     EventType,
+    InventorySlot,
+    InventoryState,
+    ObservationStatus,
     RobotEvent,
     RobotInfo,
     RobotLifecycle,
@@ -129,6 +136,71 @@ def parse_state(payload: Any) -> RobotState:
         pitch=_number(obj, "pitch", "state"),
         lifecycle=lifecycle,
         raw=obj,
+    )
+
+
+def parse_block_pos(value: Any, what: str) -> BlockPos:
+    obj = _object(value, what)
+    for key in ("x", "y", "z"):
+        component = obj.get(key)
+        if isinstance(component, bool) or not isinstance(component, int):
+            raise ProtocolError(f"{what}.{key} must be an integer")
+    return BlockPos(x=obj["x"], y=obj["y"], z=obj["z"])
+
+
+def parse_inventory(payload: Any) -> InventoryState:
+    obj = _object(payload, "inventory")
+    raw_slots = _array(obj, "slots", "inventory")
+    slots = []
+    for index, raw_slot in enumerate(raw_slots):
+        slot_obj = _object(raw_slot, "inventory.slots[]")
+        slot = _integer(slot_obj, "slot", "inventory.slots[]")
+        item_id = _optional_string(slot_obj, "itemId")
+        count = _integer(slot_obj, "count", "inventory.slots[]")
+        if slot != index:
+            raise ProtocolError("inventory slots must be ordered 0..8")
+        slots.append(InventorySlot(slot=slot, item_id=item_id, count=count))
+    if len(slots) != 9:
+        raise ProtocolError("inventory must contain exactly 9 slots")
+    return InventoryState(
+        robot_id=normalize_robot_id(_string(obj, "robotId", "inventory")),
+        server_epoch=_integer(obj, "serverEpoch", "inventory"),
+        server_tick=_integer(obj, "serverTick", "inventory"),
+        selected_slot=_integer(obj, "selectedSlot", "inventory"),
+        slots=tuple(slots),
+    )
+
+
+def parse_block_observation(payload: Any) -> BlockObservation:
+    obj = _object(payload, "observation")
+    status = parse_enum(ObservationStatus, obj.get("status"), ObservationStatus.ERROR)
+    block_obj = obj.get("block")
+    block = None
+    if block_obj is not None:
+        block_data = _object(block_obj, "observation.block")
+        properties = block_data.get("properties") or {}
+        if not isinstance(properties, dict):
+            raise ProtocolError("observation.block.properties must be an object")
+        if not all(isinstance(key, str) and isinstance(value, str) for key, value in properties.items()):
+            raise ProtocolError("observation.block.properties must map strings to strings")
+        block = BlockSnapshot(
+            position=parse_block_pos(block_data.get("position"), "observation.block.position"),
+            block_id=_string(block_data, "blockId", "observation.block"),
+            properties=MappingProxyType(dict(properties)),
+            air=_boolean(block_data, "air", "observation.block"),
+        )
+    if status is ObservationStatus.OK and block is None:
+        raise ProtocolError("an OK block observation needs a block")
+    if status is not ObservationStatus.OK and block is not None:
+        raise ProtocolError("a non-OK block observation must not carry a block")
+    return BlockObservation(
+        robot_id=normalize_robot_id(_string(obj, "robotId", "observation")),
+        position=parse_block_pos(obj.get("position"), "observation.position"),
+        status=status,
+        block=block,
+        reason=_optional_string(obj, "reason") or "",
+        server_epoch=_integer(obj, "serverEpoch", "observation"),
+        server_tick=_integer(obj, "serverTick", "observation"),
     )
 
 

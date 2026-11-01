@@ -26,9 +26,10 @@ MINE_BLOCK
 USE_ITEM_ON_BLOCK
 ```
 
-The SDK also exposes live `Robot.state()` for the robot itself and a persistent
-velocity setpoint (`Robot.set_velocity()` / `clear_velocity()`). There is no
-pathfinding, `MoveTo`, naming, inventory, GUI-container, block/entity/sensor
+The SDK also exposes live `Robot.state()` for the robot itself, a stable
+`Robot.inventory()` snapshot, explicit `Robot.observe_block()` reads and a
+persistent velocity setpoint (`Robot.set_velocity()` / `clear_velocity()`).
+There is no pathfinding, `MoveTo`, naming, GUI-container, region/entity/sensor
 observation or orientation-setpoint API in this slice, because the Adapter has
 no such public operations yet.
 
@@ -118,10 +119,42 @@ if not state.lifecycle.is_loaded:
 - `state.velocity` is the actual native velocity, not the setpoint target;
 - a non-loaded/removed/unavailable robot raises `RobotNotLoaded`; an absent UUID
   raises `RobotNotFound`;
-- no inventory, block/region/entity/sensor or environmental completeness query
-  is exposed in this slice.
+- inventory and explicit block observation are separate requests; there is no
+  region/entity/sensor or environmental completeness query in this slice.
 
-### 5.2 Velocity setpoints
+### 5.2 Inventory and explicit block observation
+
+```python
+from swarmie import BlockPos, ObservationStatus
+
+inventory = robot.inventory()
+print(inventory.server_tick, inventory.selected_slot)
+for slot in inventory.slots:          # always 0..8, in order
+    if not slot.empty:
+        print(slot.slot, slot.item_id, slot.count)
+
+block = robot.observe_block(BlockPos(10, 64, -3))
+print(block.server_tick, block.status)
+if block.status is ObservationStatus.OK:
+    print(block.block.block_id, block.block.properties, block.block.air)
+else:
+    print(block.reason)              # UNLOADED is not air
+```
+
+- `inventory()` returns nine ordered slots, `selected_slot`, and
+  `server_epoch`/`server_tick`; empty slots have `item_id=None`, `count=0`.
+  Item components and raw Minecraft stacks are not exposed.
+- `observe_block(BlockPos)` returns a single `BlockObservation`. `status=OK`
+  carries a bounded block id/properties/air summary. `UNLOADED`,
+  `OUT_OF_BOUNDS`, `INVALID`, `UNSUPPORTED` and `ERROR` carry no block and must
+  not be converted to air.
+- Unknown/unloaded/removed robots raise `RobotNotFound` / `RobotNotLoaded`;
+  malformed positions are rejected locally (`ValueError`) or as
+  `ServerError(INVALID_ARGUMENT)`.
+- Both operations are read-only: they do not mutate inventory, world, action
+  queue or setpoints.
+
+### 5.3 Velocity setpoints
 
 ```python
 ack = robot.set_velocity(Vec3(0.1, 0.0, 0.0))
@@ -197,9 +230,11 @@ result = handle.wait(timeout=10.0)    # COMMAND_CANCELLED event
 | Situation | SDK behaviour |
 |---|---|
 | Unknown UUID | `RobotNotFound` |
-| Robot exists but is not loaded/available | `RobotNotLoaded` for state; `CommandRejected` for actions |
+| Robot exists but is not loaded/available | `RobotNotLoaded` for state/inventory/block; `CommandRejected` for actions |
 | Submit rejected (unloaded/removed/queue/full/conflict) | `CommandRejected` with the structured ack |
 | Setpoint rejected (unsupported channel/motion busy/invalid) | `SetpointRejected` with the structured ack |
+| Block target unloaded/out of bounds | `BlockObservation.status` `UNLOADED`/`OUT_OF_BOUNDS`; no fabricated block |
+| Malformed block position | local `ValueError`; server `ServerError(INVALID_ARGUMENT)` if raw wire is malformed |
 | Command did not finish in time | `WaitTimeout` carrying the handle and current state |
 | Cancel unknown | `CancelUnknown` (or a `CancelAck` with `status=UNKNOWN`) |
 | Socket closed/reset | `ConnectionClosed` |
@@ -236,6 +271,7 @@ disconnected were retained.
 | [`03_cancel_command.py`](../tools/sdk/examples/03_cancel_command.py) | start a long flight, cancel it, read terminal state |
 | [`04_mine_block.py`](../tools/sdk/examples/04_mine_block.py) | optional world-changing mining example |
 | [`05_curve_flight.py`](../tools/sdk/examples/05_curve_flight.py) | repeated live-state reads and persistent velocity setpoints on a 3D curve |
+| [`06_farm_workflow.py`](../tools/sdk/examples/06_farm_workflow.py) | one farmland/seed preparation action with post-action inventory/block confirmation |
 
 Run one from the repository root:
 
@@ -243,6 +279,7 @@ Run one from the repository root:
 python tools/sdk/examples/01_list_robots.py
 python tools/sdk/examples/02_fly_and_stop.py --robot <uuid> --duration 20
 python tools/sdk/examples/05_curve_flight.py --robot <uuid> --duration 15
+python tools/sdk/examples/06_farm_workflow.py --robot <uuid> --farmland=-23,72,1
 ```
 
 The end-to-end smoke test remains at
@@ -259,24 +296,27 @@ The suite uses a controllable in-process mock server and covers message
 encoding/decoding, request/response correlation, explicit UUID selection,
 ack-versus-result, timeouts, cancel and terminal states, duplicates, rejected
 submissions, connection close, server errors, same-epoch reconnect, epoch
-change, event gaps, per-robot isolation, live-state parsing, setpoint
-acceptance/replacement/clear and setpoint rejection. It does **not** replace a
-real Minecraft integration test. A separate real integrated-server run is
-recorded in [`api-v1-runtime-validation.md`](api-v1-runtime-validation.md).
+change, event gaps, per-robot isolation, live-state parsing, inventory/block
+parsing, setpoint acceptance/replacement/clear and setpoint rejection. It does
+**not** replace a real Minecraft integration test. A separate real
+integrated-server run is recorded in
+[`api-v1-runtime-validation.md`](api-v1-runtime-validation.md).
 
 ## 12. Limits
 
 - localhost development transport only; default-off, loopback, no auth/TLS;
 - four legacy commands only; the only additional public operations are live
-  self-state and the velocity setpoint; no MoveTo, inventory, containers,
-  naming, LOS or batch;
-- live state is limited to robot self-state; no block/entity/sensor queries;
+  self-state, inventory, explicit block observation and the velocity setpoint;
+  no MoveTo, containers, naming, LOS or batch;
+- live state is limited to robot self-state; inventory and explicit block
+  observation are the only additional read operations;
+- no region/entity/sensor observation, GUI containers, naming, LOS or batch;
 - velocity setpoints only; no orientation, hover, position hold or trajectory;
 - `TimedFlight`/`Stop` and velocity setpoints exclude each other on the motion
   channel (`MOTION_CHANNEL_BUSY`);
 - synchronous, single-threaded API; no asyncio/background worker;
 - no cross-process persistence: command/event history is per server session;
 - no dedicated-server, second-client or multiplayer verification; in-game
-  validation is limited to one real Minecraft 26.3 integrated-server session
-  (see `docs/api-v1-runtime-validation.md`);
+  validation is limited to real Minecraft 26.3 integrated-server sessions for
+  state/setpoints and lifecycle (see `docs/api-v1-runtime-validation.md`);
 - Python SDK version `0.1.0` and Adapter contract `0.1` are pre-stable.

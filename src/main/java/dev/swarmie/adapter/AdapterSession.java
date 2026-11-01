@@ -9,6 +9,9 @@ import dev.swarmie.adapter.transport.LocalJsonTransport;
 import dev.swarmie.contract.AckStatus;
 import dev.swarmie.contract.BatchSubmission;
 import dev.swarmie.contract.BatchSubmitAck;
+import dev.swarmie.contract.BlockObservation;
+import dev.swarmie.contract.BlockPosDto;
+import dev.swarmie.contract.BlockSnapshotDto;
 import dev.swarmie.contract.CancelAck;
 import dev.swarmie.contract.CommandResult;
 import dev.swarmie.contract.CommandSpec;
@@ -18,6 +21,9 @@ import dev.swarmie.contract.CommandType;
 import dev.swarmie.contract.ContractLimits;
 import dev.swarmie.contract.ErrorCode;
 import dev.swarmie.contract.EventBatch;
+import dev.swarmie.contract.InventorySlot;
+import dev.swarmie.contract.InventoryState;
+import dev.swarmie.contract.ObservationStatus;
 import dev.swarmie.contract.RobotDescriptor;
 import dev.swarmie.contract.RobotEvent;
 import dev.swarmie.contract.RobotEventType;
@@ -27,13 +33,19 @@ import dev.swarmie.contract.RobotState;
 import dev.swarmie.contract.SetpointAck;
 import dev.swarmie.contract.SubmitAck;
 import dev.swarmie.contract.Vec3Dto;
+import dev.swarmie.query.BlockQueryResult;
+import dev.swarmie.query.BlockSnapshot;
+import dev.swarmie.query.QueryStatus;
 import dev.swarmie.runtime.SubmissionResult;
 import dev.swarmie.runtime.SwarmieCommand;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +61,8 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -74,6 +88,9 @@ public final class AdapterSession {
     private final Map<UUID, SwarmieEntity> loaded = new HashMap<>();
     private final VelocitySetpoints velocitySetpoints = new VelocitySetpoints();
     private final RobotStateStore states = new RobotStateStore();
+    private final RobotInventoryStore inventories = new RobotInventoryStore();
+    private final Queue<BlockRequest> blockRequests = new ConcurrentLinkedQueue<>();
+    private final Set<UUID> guestMotionOwners = ConcurrentHashMap.newKeySet();
     private volatile long serverTick;
     private long lastPublishedSequence;
     private boolean stopped;
@@ -105,6 +122,7 @@ public final class AdapterSession {
         this.stopped = true;
         this.cancels.clear();
         this.cancelCount.set(0);
+        this.guestMotionOwners.clear();
         if (this.transport != null) {
             this.transport.close();
             this.transport = null;
@@ -112,6 +130,13 @@ public final class AdapterSession {
         for (InboundQueue.Entry entry : this.inbound.drain()) {
             failInbound(entry, CommandState.INTERRUPTED, ErrorCode.INTERRUPTED,
                     "server stopping", "server stopping");
+        }
+        while (!this.blockRequests.isEmpty()) {
+            BlockRequest request = this.blockRequests.poll();
+            if (request != null) {
+                request.result().complete(BlockObservationResult.failure(
+                        ErrorCode.ROBOT_UNAVAILABLE, "server adapter is not running"));
+            }
         }
         for (SwarmieEntity robot : new ArrayList<>(this.loaded.values())) {
             onEntityUnload(robot);
@@ -131,6 +156,7 @@ public final class AdapterSession {
         }
         this.serverTick++;
         applyVelocitySetpoints();
+        processBlockRequests();
         processCancels();
         int budget = INBOUND_BUDGET;
         for (InboundQueue.Entry entry : this.inbound.poll(budget)) {
@@ -151,6 +177,7 @@ public final class AdapterSession {
                     this.serverTick);
         }
         publishStates();
+        publishInventories();
         flushEvents();
     }
 
@@ -164,8 +191,9 @@ public final class AdapterSession {
         this.loaded.put(id.value(), robot);
         robot.runtime().setListener(new RuntimeListener(id, this));
         this.registry.load(id, dimensionId(level), toDto(robot.position()), CAPABILITIES, this.serverTick);
-        this.velocitySetpoints.forget(id.value());
+        this.velocitySetpoints.forget(id.value(), robot);
         this.states.put(toState(robot));
+        this.inventories.put(toInventoryState(robot));
 
         String detail = dimensionChange ? "dimension change complete" : "";
         append(RobotEventType.ROBOT_LOADED, id, null, null, detail);
@@ -182,8 +210,10 @@ public final class AdapterSession {
             return;
         }
         this.loaded.remove(id.value());
-        this.velocitySetpoints.forget(id.value());
+        this.velocitySetpoints.forget(id.value(), robot);
         this.states.remove(id);
+        this.inventories.remove(id);
+        this.guestMotionOwners.remove(id.value());
         robot.onAdapterSessionEnd("robot unloaded");
         robot.runtime().setListener(null);
         for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -199,8 +229,10 @@ public final class AdapterSession {
         RobotId id = new RobotId(robot.getUUID());
         if (reason == Entity.RemovalReason.CHANGED_DIMENSION) {
             this.loaded.remove(id.value());
-            this.velocitySetpoints.forget(id.value());
+            this.velocitySetpoints.forget(id.value(), robot);
             this.states.remove(id);
+            this.inventories.remove(id);
+            this.guestMotionOwners.remove(id.value());
             robot.onAdapterSessionEnd("dimension change");
             robot.runtime().setListener(null);
             for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -215,8 +247,10 @@ public final class AdapterSession {
         }
 
         this.loaded.remove(id.value());
-        this.velocitySetpoints.forget(id.value());
+        this.velocitySetpoints.forget(id.value(), robot);
         this.states.remove(id);
+        this.inventories.remove(id);
+        this.guestMotionOwners.remove(id.value());
         robot.onAdapterSessionEnd("owner removed");
         robot.runtime().setListener(null);
         for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -235,6 +269,182 @@ public final class AdapterSession {
     /** Latest completed/known self-state snapshot for a loaded robot. */
     public Optional<RobotState> readState(RobotId robotId) {
         return this.states.find(robotId);
+    }
+
+    /** Latest end-tick inventory snapshot for a loaded robot. */
+    public Optional<InventoryState> readInventory(RobotId robotId) {
+        return this.inventories.find(robotId);
+    }
+
+    /**
+     * Internal experiment ownership: one guest may own the motion channel.
+     * It is rejected if the JSONL velocity/legacy channel already owns it.
+     */
+    public boolean claimGuestMotion(RobotId robotId) {
+        if (this.stopped) {
+            return false;
+        }
+        Optional<RobotDescriptor> descriptor = this.registry.find(robotId);
+        if (descriptor.isEmpty() || descriptor.get().lifecycle() != RobotLifecycleState.LOADED) {
+            return false;
+        }
+        if (this.velocitySetpoints.isSetpointActive(robotId)
+                || this.velocitySetpoints.hasLegacyMotion(robotId)) {
+            return false;
+        }
+        return this.guestMotionOwners.add(robotId.value());
+    }
+
+    public void releaseGuestMotion(RobotId robotId) {
+        this.guestMotionOwners.remove(robotId.value());
+    }
+
+    public boolean isGuestMotionOwner(RobotId robotId) {
+        return this.guestMotionOwners.contains(robotId.value());
+    }
+
+    /**
+     * Queues a read-only block observation on the server thread. The future
+     * completes on the server tick; callers must not block the server thread.
+     */
+    public CompletableFuture<BlockObservationResult> requestBlockObservation(
+            RobotId robotId, BlockPosDto position) {
+        if (this.stopped) {
+            return CompletableFuture.completedFuture(BlockObservationResult.failure(
+                    ErrorCode.ROBOT_UNAVAILABLE, "server adapter is not running"));
+        }
+        Optional<RobotDescriptor> descriptor = this.registry.find(robotId);
+        if (descriptor.isEmpty()) {
+            return CompletableFuture.completedFuture(BlockObservationResult.failure(
+                    ErrorCode.ROBOT_NOT_FOUND, "robot is not registered"));
+        }
+        RobotLifecycleState lifecycle = descriptor.get().lifecycle();
+        if (lifecycle == RobotLifecycleState.REMOVED) {
+            return CompletableFuture.completedFuture(BlockObservationResult.failure(
+                    ErrorCode.ROBOT_REMOVED, "robot has been removed"));
+        }
+        if (lifecycle == RobotLifecycleState.UNLOADED) {
+            return CompletableFuture.completedFuture(BlockObservationResult.failure(
+                    ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded"));
+        }
+        if (position == null) {
+            return CompletableFuture.completedFuture(BlockObservationResult.failure(
+                    ErrorCode.INVALID_ARGUMENT, "block position is required"));
+        }
+        CompletableFuture<BlockObservationResult> future = new CompletableFuture<>();
+        this.blockRequests.add(new BlockRequest(robotId, position, future));
+        return future;
+    }
+
+    private void processBlockRequests() {
+        for (int i = 0; i < 32; i++) {
+            BlockRequest request = this.blockRequests.poll();
+            if (request == null) {
+                return;
+            }
+            if (request.result().isDone()) {
+                continue;
+            }
+            request.result().complete(readBlockObservation(request.robotId(), request.position()));
+        }
+    }
+
+    private BlockObservationResult readBlockObservation(RobotId robotId, BlockPosDto position) {
+        Optional<RobotDescriptor> descriptor = this.registry.find(robotId);
+        if (descriptor.isEmpty()) {
+            return BlockObservationResult.failure(ErrorCode.ROBOT_NOT_FOUND, "robot is not registered");
+        }
+        RobotLifecycleState lifecycle = descriptor.get().lifecycle();
+        if (lifecycle == RobotLifecycleState.REMOVED) {
+            return BlockObservationResult.failure(ErrorCode.ROBOT_REMOVED, "robot has been removed");
+        }
+        if (lifecycle == RobotLifecycleState.UNLOADED) {
+            return BlockObservationResult.failure(ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded");
+        }
+        SwarmieEntity robot = this.loaded.get(robotId.value());
+        if (robot == null) {
+            return BlockObservationResult.failure(ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded");
+        }
+        try {
+            BlockQueryResult result = robot.queryBlock(new BlockPos(position.x(), position.y(), position.z()));
+            ObservationStatus status = observationStatus(result.status());
+            BlockSnapshotDto snapshot = result.successful() && result.block() != null
+                    ? toBlockSnapshot(result.block())
+                    : null;
+            if (status == ObservationStatus.OK && snapshot == null) {
+                status = ObservationStatus.ERROR;
+            }
+            BlockObservation observation = new BlockObservation(
+                    robotId, position, status, snapshot,
+                    status == ObservationStatus.OK ? "" : result.reason(),
+                    this.serverEpoch, this.serverTick);
+            return BlockObservationResult.success(observation);
+        }
+        catch (RuntimeException exception) {
+            return BlockObservationResult.failure(ErrorCode.INTERNAL_ERROR, exception.getMessage());
+        }
+    }
+
+    private static ObservationStatus observationStatus(QueryStatus status) {
+        return switch (status) {
+            case OK -> ObservationStatus.OK;
+            case UNLOADED -> ObservationStatus.UNLOADED;
+            case OUT_OF_BOUNDS -> ObservationStatus.OUT_OF_BOUNDS;
+            case INVALID -> ObservationStatus.INVALID;
+            case UNSUPPORTED -> ObservationStatus.UNSUPPORTED;
+            case WRONG_THREAD, ERROR -> ObservationStatus.ERROR;
+        };
+    }
+
+    private static BlockSnapshotDto toBlockSnapshot(BlockSnapshot snapshot) {
+        return new BlockSnapshotDto(
+                new BlockPosDto(snapshot.pos().getX(), snapshot.pos().getY(), snapshot.pos().getZ()),
+                snapshot.blockId().toString(), snapshot.properties(), snapshot.air());
+    }
+
+    private InventoryState toInventoryState(SwarmieEntity robot) {
+        List<InventorySlot> slots = new ArrayList<>(InventoryState.SLOT_COUNT);
+        for (int i = 0; i < InventoryState.SLOT_COUNT; i++) {
+            ItemStack stack = robot.inventory().getItem(i);
+            if (stack.isEmpty()) {
+                slots.add(new InventorySlot(i, null, 0));
+            }
+            else {
+                Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                slots.add(new InventorySlot(i,
+                        itemId == null ? "minecraft:unknown" : itemId.toString(),
+                        stack.getCount()));
+            }
+        }
+        return new InventoryState(new RobotId(robot.getUUID()), this.serverEpoch,
+                this.serverTick, robot.inventory().getSelectedSlot(), slots);
+    }
+
+    private void publishInventories() {
+        Set<UUID> live = new HashSet<>();
+        for (SwarmieEntity robot : this.loaded.values()) {
+            this.inventories.put(toInventoryState(robot));
+            live.add(robot.getUUID());
+        }
+        this.inventories.retainOnly(live);
+    }
+
+    public record BlockObservationResult(BlockObservation observation, ErrorCode error, String message) {
+        public static BlockObservationResult success(BlockObservation observation) {
+            return new BlockObservationResult(observation, null, "");
+        }
+
+        public static BlockObservationResult failure(ErrorCode error, String message) {
+            return new BlockObservationResult(null, error, message == null ? "" : message);
+        }
+
+        public boolean failed() {
+            return this.error != null;
+        }
+    }
+
+    private record BlockRequest(RobotId robotId, BlockPosDto position,
+                                CompletableFuture<BlockObservationResult> result) {
     }
 
     /**
@@ -263,6 +473,11 @@ public final class AdapterSession {
             return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId), false,
                     ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded",
                     this.serverEpoch, this.serverTick);
+        }
+        if (this.guestMotionOwners.contains(robotId.value())) {
+            return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId), false,
+                    ErrorCode.MOTION_CHANNEL_BUSY,
+                    "DCPU guest owns the motion channel", this.serverEpoch, this.serverTick);
         }
         if (!clear && velocity == null) {
             return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId),
@@ -347,6 +562,12 @@ public final class AdapterSession {
             if (lifecycle == RobotLifecycleState.UNLOADED) {
                 return SubmitAck.rejected(submission.robotId(), submission.correlationId(),
                         submission.command().type(), ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded");
+            }
+            if (this.guestMotionOwners.contains(submission.robotId().value())
+                    && isLegacyMotion(submission.command().type())) {
+                return SubmitAck.rejected(submission.robotId(), submission.correlationId(),
+                        submission.command().type(), ErrorCode.MOTION_CHANNEL_BUSY,
+                        "DCPU guest owns the motion channel");
             }
         }
 

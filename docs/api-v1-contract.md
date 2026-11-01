@@ -7,19 +7,25 @@
 > Current implementation is pre-stable contract `0.1`; v1 is a design target,
 > not a claim that v1 already exists.
 >
-> **Implemented slice (2026-10-29):** `State.self` and the persistent velocity
-> setpoint are implemented through the local JSONL transport and Python SDK.
-> Inventory, block/region/entity/sensor observations, orientation setpoints,
-> hover and all other action candidates remain unimplemented. Capability
-> discovery is not implemented in this slice: `state` and velocity setpoints are
-> available for loaded robots, and clients must not interpret the absence of a
-> capability object as proof of unsupported behavior yet.
+> **Implemented slice (2026-10-29, extended 2026-11-02):** `State.self`, the
+> persistent velocity setpoint, `Robot.inventory()` and
+> `Robot.observe_block()` are implemented through the local JSONL transport and
+> Python SDK. Inventory is a bounded nine-slot summary; block observation is an
+> explicit coordinate read that reports `UNLOADED`/`OUT_OF_BOUNDS` without
+> fabricating air. Entity scanning, local sensing, orientation setpoints, batch
+> queries and new actions remain unimplemented. Capability discovery is not
+> implemented in this slice: `state.self`, `inventory`, `observe_block` and the
+> velocity setpoint are available for loaded robots, and clients must not
+> interpret the absence of a capability object as proof of unsupported behavior
+> yet.
 >
-> **Runtime validation (2026-10-29):** state, velocity setpoints, clamping,
-> replacement/clear, collision, action coexistence, legacy ownership and
-> restart were exercised against the real Minecraft 26.3 integrated server.
-> Lifecycle cases (unload, removal, dimension change) and independent yaw/pitch
-> comparison remain unverified. See
+> **Runtime validation (2026-10-29, extended 2026-11-02):** state, velocity
+> setpoints, clamping, replacement/clear, collision, action coexistence, legacy
+> ownership, restart and lifecycle transitions were exercised against the real
+> Minecraft 26.3 integrated server. The 2026-11-02 observation slice also
+> validated a real nine-slot inventory read and explicit air/UNLOADED/
+> OUT_OF_BOUNDS block observations. The dimension transition observation window
+> and independent yaw/pitch comparison remain unverified. See
 > [api-v1-runtime-validation.md](api-v1-runtime-validation.md).
 
 ## 0. How to read this document
@@ -290,9 +296,10 @@ class RobotState:
     pitch: float          # degrees
 
 @dataclass(frozen=True)
-class ItemStack:
-    item_id: str
-    count: int
+class InventorySlot:
+    slot: int                  # 0..8
+    item_id: Optional[str]     # None for empty
+    count: int                 # 0 for empty
 
 @dataclass(frozen=True)
 class InventoryState:
@@ -300,7 +307,7 @@ class InventoryState:
     server_epoch: int
     server_tick: int
     selected_slot: int
-    slots: Tuple[Optional[ItemStack], ...]   # exactly 9 entries; None = empty
+    slots: Tuple[InventorySlot, ...]   # exactly 9 entries, ordered 0..8
 ```
 
 `velocity` MUST be the actual entity velocity at `server_tick`, not the last
@@ -311,9 +318,10 @@ data is still current when the client uses it. The client MUST NOT use its local
 wall clock as a freshness proof.
 
 The inventory is the robot-owned nine-slot inventory. `selected_slot` is 0..8.
-`None` means observed empty; there is no "unknown slot" in a successful
-inventory response. Item components (durability, enchantments, custom data) are
-**not** represented in v1; `item_id` and `count` are intentionally minimal.
+An empty slot has `item_id=None` and `count=0`; there is no "unknown slot" in a
+successful inventory response. Item components (durability, enchantments, custom
+data) are **not** represented in v1; `slot`, `item_id` and `count` are
+intentionally minimal.
 
 `Robot.state()` and `Robot.inventory()` MUST fail with `RobotNotLoaded` rather
 than returning a fabricated empty state when the robot is not `LOADED`.
@@ -871,8 +879,9 @@ wire strings and may be added without a new exception class.
 ## 10. Transport shape (implemented subset and future proposal)
 
 The existing JSONL ops remain: `robots`, `events`, `submit`, `cancel`, `ping`.
-The first slice adds two implemented ops, `state` and `setpoint`; they are local
-development protocol, not a remote API.
+The implemented observation/control slice adds `state`, `inventory`,
+`observe_block` and `setpoint`; they are local development protocol, not a remote
+API.
 
 Implemented state request/response:
 
@@ -886,6 +895,42 @@ Implemented state request/response:
   "dimensionId":"minecraft:overworld","position":{...},"velocity":{...},
   "yaw":90.0,"pitch":0.0,"lifecycle":"LOADED"}}
 ```
+
+Implemented inventory request/response:
+
+```json
+{"op":"inventory","id":"6","robot":"<uuid>"}
+```
+
+```json
+{"type":"inventory","id":"6","inventory":{
+  "robotId":"<uuid>","serverEpoch":123,"serverTick":456,"selectedSlot":1,
+  "slots":[{"slot":0,"itemId":"minecraft:wheat_seeds","count":4},
+           {"slot":1,"itemId":"minecraft:iron_hoe","count":1},
+           {"slot":2,"count":0}, "... exactly 9 entries"]}}
+```
+
+Empty slots have no item id (absent or null) and count 0. Slots are always
+ordered 0..8; item components are not exposed.
+
+Implemented block request/response:
+
+```json
+{"op":"observe_block","id":"7","robot":"<uuid>",
+ "position":{"x":10,"y":64,"z":-3}}
+```
+
+```json
+{"type":"block_observation","id":"7","observation":{
+  "robotId":"<uuid>","position":{"x":10,"y":64,"z":-3},
+  "status":"OK","block":{"position":{"x":10,"y":64,"z":-3},
+  "blockId":"minecraft:farmland","properties":{"moisture":"7"},
+  "air":false},"reason":"","serverEpoch":123,"serverTick":456}}
+```
+
+For `status != "OK"`, `block` is absent and `reason` explains the status. A
+client MUST NOT convert `UNLOADED`, `OUT_OF_BOUNDS`, `INVALID`, `UNSUPPORTED` or
+`ERROR` to air.
 
 Implemented setpoint requests and ack:
 
@@ -908,11 +953,16 @@ Implemented setpoint requests and ack:
 
 Implemented behavior:
 
-- `state` returns only robot self-state; unknown/unloaded/removed robots return
-  `ROBOT_NOT_FOUND`/`ROBOT_NOT_LOADED`/`ROBOT_REMOVED`, and an unavailable
-  snapshot returns `ROBOT_UNAVAILABLE`;
+- `state`, `inventory` and `observe_block` require a `LOADED` robot; unknown,
+  unloaded and removed robots return `ROBOT_NOT_FOUND`/`ROBOT_NOT_LOADED`/
+  `ROBOT_REMOVED`; a missing snapshot returns `ROBOT_UNAVAILABLE`;
 - `state` is a snapshot with `serverEpoch`/`serverTick` freshness; it is not a
   registry descriptor;
+- `inventory` is a stable nine-slot snapshot with `selectedSlot` and
+  `serverEpoch`/`serverTick` freshness; it is read-only;
+- `observe_block` is a single explicit coordinate read executed on the server
+  thread; it reports `UNLOADED` and `OUT_OF_BOUNDS` as observation statuses, not
+  fabricated air; malformed position fields are request errors;
 - `setpoint` accepts `value` for set and `clear:true` for clear; a rejected
   request carries an error and does not change the target/revision;
 - setpoint acceptance is synchronous; no per-update event is emitted;
@@ -921,9 +971,8 @@ Implemented behavior:
 - velocity is clamped at `0.35` blocks/tick with `clamped=true`.
 
 Future (not implemented): a general `observe` operation with `kind` values
-`inventory`, `block`, `region`, `entities`, `sensor` (and possibly `self` as an
-alias). Its proposed fields are `inventory` none, `block` `position`, `region`
-`from`/`to`, `entities` box/type/exclude-self, and `sensor`
+`region`, `entities`, `sensor` (and possibly `self` as an alias). Its proposed
+fields are `region` `from`/`to`, `entities` box/type/exclude-self, and `sensor`
 range/FOV/results/line-of-sight. Those are not part of this slice and must not
 be advertised as available.
 
@@ -1033,14 +1082,14 @@ Status meanings:
 | Stable UUID and exact-ID lookup | **SUPPORTED** | `RobotId` is a UUID; SDK `client.robot()` matches exact UUID and raises `RobotNotFound` (`tools/sdk/swarmie/client.py:172-190`); `test_exact_robot_selection_never_defaults_to_first` (`tools/sdk/tests/test_client.py:69`). |
 | Robot lifecycle and dimension metadata | **SUPPORTED** | `RobotDescriptor` has lifecycle/dimension/lastUpdatedTick (`contract/src/main/java/dev/swarmie/contract/RobotDescriptor.java:6-12`); registry load/unload/remove (`src/main/java/dev/swarmie/adapter/registry/RobotRegistry.java`); lifecycle tests in `RobotRegistryTest.java` and SDK `test_robot_info_is_structured`. |
 | Robot live position/velocity/orientation | **SUPPORTED** for `state.self` | Public JSONL `state` op + SDK `Robot.state()`; server snapshot at end tick (`AdapterSession.onEndTick`); orientation is read-only. Unit/mock and real integrated-server validation; yaw/pitch independent comparison remains unverified. |
-| Capability discovery and version | **PARTIAL** | `RobotDescriptor.supportedCommands` and global `ContractVersion` exist (`RobotDescriptor.java:6-12`, `ContractVersion.java:4-5`); `AdapterSession` advertises all four `CommandType`s (`AdapterSession.java:59`). No per-robot capability version, no state/setpoint capability names. |
+| Capability discovery and version | **PARTIAL** | `RobotDescriptor.supportedCommands` and global `ContractVersion` exist (`RobotDescriptor.java:6-12`, `ContractVersion.java:4-5`); `AdapterSession` advertises all four `CommandType`s (`AdapterSession.java:59`). No per-robot capability version, no state/setpoint/inventory/block capability names. |
 | `state.self` | **SUPPORTED** | `RobotState`, volatile `RobotStateStore`, JSONL `state` op, SDK `Robot.state()`; tests `RobotStateStoreTest`, `TransportCodecTest`, SDK `test_state_*`. Real integrated-server validation: 2026-10-29. |
-| `state.inventory` | **MISSING** | `SwarmieInventory` has 9 slots and selected slot (`SwarmieInventory.java:17-23,100-114`), but it is only exposed by debug `swarmie inventory show`, not Adapter/JSONL. |
-| `state.block` | **MISSING** | `WorldQuery.queryBlock` and `BlockQueryResult` exist (`WorldQuery.java`, `DefaultWorldQuery.java:31-56`); no Adapter/JSONL operation. |
+| `state.inventory` | **SUPPORTED** | `InventoryState`/`InventorySlot`, end-tick `RobotInventoryStore`, JSONL `inventory` op, SDK `Robot.inventory()`; tests `ObservationContractTest`, `RobotInventoryStoreTest`, `TransportCodecTest`, SDK inventory tests. Real integrated-server validation: 2026-11-02. |
+| `state.block` | **SUPPORTED** | `BlockObservation`, `ObservationStatus`, `BlockSnapshotDto`, server-thread query queue, JSONL `observe_block` op, SDK `Robot.observe_block()`; `DefaultWorldQuery.queryBlock`; tests `ObservationContractTest`, `TransportCodecTest`, SDK block tests. Real air/UNLOADED/OUT_OF_BOUNDS validation: 2026-11-02. |
 | `state.region` | **MISSING** | `queryRegion` exists with 4096 cap and `complete`/`unavailable` (`DefaultWorldQuery.java:59-93`); no public operation. |
 | `state.entities` | **MISSING** | `queryEntities` exists with 256/65536 limits and `complete`/`truncated` (`DefaultWorldQuery.java:95-148`); no public operation. |
 | `state.sensor` | **MISSING** | `LocalSensor`/`SensorObservation` and `DefaultLocalSensor` exist (`DefaultLocalSensor.java:60-153`); no public operation; line-of-sight returns `UNSUPPORTED` (`DefaultLocalSensor.java:56-61`). |
-| Observation completeness/status model | **PARTIAL** | Internal `QueryStatus`, `RegionQueryResult.complete`, `EntityQueryResult.complete/truncated`, `SensorObservation.incomplete/truncated` exist; not exposed. |
+| Observation completeness/status model | **PARTIAL** | Internal `QueryStatus`, `RegionQueryResult.complete`, `EntityQueryResult.complete/truncated`, `SensorObservation.incomplete/truncated` exist; public block observations expose `UNLOADED`/`OUT_OF_BOUNDS`/`INVALID`/`ERROR`, but region/entity/sensor completeness is not exposed. |
 | Continuous velocity setpoint | **SUPPORTED** | `VelocitySetpoints` + `AdapterSession.requestVelocitySetpoint` + JSONL `setpoint` op + SDK `Robot.set_velocity`; applied before `Runtime`/inbound dispatch on the server tick. Clamping, replacement, clear, collision, action coexistence and restart were validated in a real integrated server (2026-10-29). |
 | Orientation setpoint | **MISSING** | No controller or transport; entity yaw/pitch are inherited but never controlled. |
 | Latest-wins/revision/clear semantics | **SUPPORTED** | `VelocitySetpoints` revision counter and last-writer-wins map; `clear` is a setpoint operation, not the legacy `STOP` action. Unit tested. |
@@ -1054,14 +1103,14 @@ Status meanings:
 | Action accepted/running/terminal/cancel | **SUPPORTED** | `SubmitAck`, `CommandState`, `CancelAck`, runtime transitions (`SwarmieRuntime.java:233-361`), SDK handle tests (`tools/sdk/tests/test_client.py:86-241`). |
 | Batch action submission | **PARTIAL** | Contract `BatchSubmission`/`BatchSubmitAck` and `AdapterSession.submitBatch` exist (`AdapterSession.java:246`), but the JSONL transport and SDK expose single submit only. |
 | Action timeout | **PARTIAL** | Client `WaitTimeout` exists; server has no general action watchdog; `ErrorCode.TIMEOUT` is defined but unused (`docs/adapter-command-specs.md`). |
-| Side-effect confirmation | **MISSING** | `CommandResult` has only state/error/message (`CommandResult.java:3-10`); no post-action observation or effect evidence. Native `destroyBlock` success is not a world snapshot. |
+| Side-effect confirmation | **PARTIAL** | `CommandResult` has only state/error/message; `inventory` and `observe_block` now provide public post-action observation for those resources (`docs/farming-workflow.md`), but there is no generic effect-evidence payload or container/item-component confirmation. |
 | Resource conflict semantics | **MISSING** | Per-robot FIFO serializes actions (`SwarmieRuntime.java:25,233,318`); no resource model or `RESOURCE_CONFLICT`. |
 | `COMMAND_*` / `ROBOT_*` events | **SUPPORTED** | `RobotEventType` and `RobotEvent`; listener emits accepted/started/terminal (`AdapterSession.java:498-575`); runtime event tests. |
 | Event sequence/epoch/missed | **SUPPORTED** | `RobotEvent` comment/fields (`RobotEvent.java:3-16`), `EventBatch` (`EventBatch.java:5-16`), event store ring capacity 1024 and `missed` logic (`AdapterEventStore.java:17,70-91`); `AdapterEventStoreTest`, SDK gap tests. |
 | Reconnect continuity | **SUPPORTED** (bounded) | SDK reconnect/replay and epoch invalidation tests (`test_client.py:262-306`); no cross-epoch action recovery, and events older than the ring are lost. |
 | Event loss semantics | **SUPPORTED** | `missed=true` and `oldestAvailableSequence`; SDK raises `EventGapError` (`tools/sdk/swarmie/errors.py`), tests `test_gap_*`. |
 | Direct response vs event separation | **SUPPORTED** | `robots`/`ack`/`cancel_ack` direct; command events async; SDK `test_ack_is_not_completion`. |
-| Public JSONL `observe`/`setpoint` ops | **PARTIAL** | `state` and `setpoint` (velocity) ops are implemented; other observation kinds are not. Existing ops remain `robots`, `events`, `submit`, `cancel`, `ping` (`docs/local-transport.md`). |
+| Public JSONL `observe`/`setpoint` ops | **PARTIAL** | `state`, `inventory`, `observe_block` and `setpoint` (velocity) are implemented; region/entity/sensor observations are not. Existing ops remain `robots`, `events`, `submit`, `cancel`, `ping` (`docs/local-transport.md`). |
 | Capability-gated unsupported errors | **PARTIAL** | `UNSUPPORTED_COMMAND` and `MOTION_CHANNEL_BUSY` exist; state lifecycle errors use existing robot codes. No general per-capability negotiation yet. |
 | Error layering (request/terminal/timeout) | **PARTIAL** | SDK separates `CommandRejected`, terminal `CommandResult`, `WaitTimeout`; no public target/resource/capability codes (see §9). |
 
@@ -1078,7 +1127,9 @@ These must be resolved before v1 is declared implemented:
 1. **Orientation in v1.** Is orientation a required v1 setpoint or an optional
    capability? The design defines its semantics, but it is MISSING. If deferred,
    remove it from v1 `setpoints` and document the curve scenario's facing
-   limitation.
+   limitation. The 2026-11-02 farming workflow used an explicit block target and
+   succeeded without rotating; it provides no evidence that orientation is
+   required for that workflow.
 2. ~~Velocity clamping vs rejection.~~ **Resolved by implementation:** clamp
    with `clamped=true` and report the effective velocity. The ack contract is
    frozen for this slice.
@@ -1098,7 +1149,9 @@ These must be resolved before v1 is declared implemented:
    required for farming. The current contract only exposes item ID/count.
 8. **Side-effect evidence.** Decide whether v1 needs a structured
    `EffectEvidence` payload or whether post-action State observation is the only
-   confirmation mechanism. This design chooses the latter.
+   confirmation mechanism. This design chooses the latter; `inventory` and
+   `observe_block` now make that post-action check possible for those two
+   resources, while container/item-component effects remain unconfirmed.
 9. **Capability version format.** The design uses a string `"1"` and stable
    names. Confirm whether a semver-like string or integer is preferred, and
    whether capability version is per robot or global.

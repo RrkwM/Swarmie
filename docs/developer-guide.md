@@ -29,6 +29,8 @@ src/main/java/dev/swarmie/
   SwarmieMod.java                entry point, EntityType, spawn egg, Fabric events
   SwarmieEntity.java             real Entity body
   SwarmieFlightController.java   velocity control
+  dcpu/                          pure-Java DCPU-16 subset + MMIO devices
+  dcpu/bridge/                   test-gated Entity/Runtime bridge
   runtime/                       FIFO and command state machine
   interaction/                   FakePlayer native interaction
   inventory/                     nine-slot inventory
@@ -95,7 +97,11 @@ Runtime + capabilities
 Adapter layer
   contract / registry / event store / inbound and outbound queues / transport
         │
-Future external control plane
+Execution adapters
+  remote JSONL/Python
+  test-only DCPU-16 + MMIO bridge (not a public API)
+        │
+Future explicit OFF/REMOTE/ONBOARD authority
 ```
 
 Hard rules:
@@ -103,9 +109,13 @@ Hard rules:
 - Minecraft owns position, collision and native block/item behavior;
 - Runtime schedules commands; it does not traverse the world or hold a FakePlayer;
 - the contract package must not import `net.minecraft.*` or `net.fabricmc.*`;
+- the pure-Java `dcpu/` package must not import Minecraft/Fabric; only
+  `dcpu/bridge/` may touch the Entity/Runtime;
 - external control uses Adapter contracts, never `SwarmieEntity`;
 - classic debug commands (`velocity`, `inventory`, `query`, `sensor`) are not
-  public contracts.
+  public contracts;
+- DCPU/MMIO is an experiment until an explicit authority and production MMIO
+  contract are agreed.
 
 ## 5. Contract and Adapter
 
@@ -193,7 +203,10 @@ Details:
 ./gradlew test
 ```
 
-Current baseline: 46 JUnit tests.
+Current baseline: 71 main-mod JUnit tests and 12 contract tests; the Python SDK
+has 66 mock-server tests. The DCPU/MMIO experiment is a separate test-only
+spike, not a public API; see
+[`dcpu-mmio-bridge-experiment.md`](dcpu-mmio-bridge-experiment.md).
 
 - `contract/`: contract, batch, cancel;
 - `adapter/event`: event ring and bus;

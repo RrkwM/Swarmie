@@ -12,31 +12,41 @@ English | [简体中文](test-matrix.zh-CN.md)
 | Item | Evidence | Result |
 |---|---|---|
 | `:contract` independent compile classpath | S | `compileClasspath: No dependencies` |
-| Contract has no Minecraft/Fabric imports | S | 23 source files checked |
+| Contract has no Minecraft/Fabric imports | S | 30 source files checked |
 | Contract classes in final JAR | S | `dev/swarmie/contract/*.class` |
-| `:contract:test` | A | 7 passed |
-| Root `test` | A | 39 passed |
-| Total | A | **46 passed** |
+| `:contract:test` | A | 12 passed |
+| Root `test` | A | 71 passed |
+| Total | A | **83 passed** |
 | No-cache test | A | `cleanTest test --no-build-cache` passed |
 | Offline build | S | `--offline build` passed |
 | 0.1.0 release JAR | S | 162,555 bytes, SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | Spawn egg item/model/recipe/advancement/lang data | A | 3 data-contract tests passed |
-| Python SDK (mock server) | P | 44 passed |
+| Python SDK (mock server) | P | 66 passed |
 
 Test classes:
 
 ```text
-ContractTest                  7
+ContractTest                  9
+ObservationContractTest       3
+RobotInventoryStoreTest       2
+RobotStateStoreTest           2
+VelocitySetpointsTest         7
 AdapterEventBusTest           2
 AdapterEventStoreTest         3
 InboundQueueTest              8
 RobotRegistryTest             4
+TransportCodecTest            6
 FlightControllerTest          2
 InteractionRuntimeTest        5
 SwarmieRuntimeEventTest       4
 SwarmieRuntimeTest            5
 SensingTest                   3
 SwarmieSpawnEggDataTest       3
+Dcpu16Test                    7
+MotionDeviceTest              4
+ClockDeviceTest               1
+DcpuFixtureProgramTest        2
+DcpuRuntimeBridgeTest         1
 ```
 
 ## 2. Real client
@@ -79,6 +89,12 @@ World: disposable `New World`, real integrated server.
 | Recipe unlock / auto-fill / craft | C | `Unlocked 1 recipe(s)`; recipe book filled the 3×3 grid; output crafted |
 | Right-click spawn | C | new `ROBOT_LOADED` `ff69dd53…`; inventory `empty` |
 | Python SDK discovery + explicit-UUID fly/stop/cancel | C | 15 robots; `SUCCEEDED`/`SUCCEEDED`/`CANCELLED`; reconnect `latest=63 missed=false` |
+| Inventory snapshot + explicit block observation | C | 9 ordered slots; `air`, `andesite`, `UNLOADED`, `OUT_OF_BOUNDS`; no mutation |
+| Python SDK inventory/block observation | C | read-only; `selectedSlot=0`; `UNLOADED` is not air |
+| Minimal farming workflow | C | farmland + 16 wheat seeds -> one seed consumed; crop above farmland; unloaded target FAILED without mutation |
+| DCPU guest motion bridge | C | MMIO timed flight; actual Entity moved 1.1 blocks; terminal IRQ handled; cleanup stopped VM |
+| DCPU remote-motion exclusion | C | setpoint and TIMED_FLIGHT rejected `MOTION_CHANNEL_BUSY` while guest owned motion |
+| DCPU disabled gate | C | `development=true, configured=false` -> experiment disabled |
 | Python SDK mining smoke | C | `MINE FAILED EXECUTION_FAILED 'target is air'` at the chosen test coordinates; reported explicitly |
 | Event-ring live overflow | U | not filled to 1024; small-capacity JUnit |
 | Batch live submission | U | JUnit covers limits/per-item semantics; no live batch command |
@@ -94,7 +110,7 @@ World: disposable `New World`, real integrated server.
 python -m unittest discover -s tools/sdk/tests -v
 ```
 
-44 tests, no Minecraft process required.
+66 tests, no Minecraft process required.
 
 | Item | Evidence | Result |
 |---|---|---|

@@ -117,6 +117,24 @@ public final class SwarmieAdapter {
         return current == null ? 0L : current.serverEpoch();
     }
 
+    /** Internal experiment seam; not a JSONL/public API operation. */
+    public static boolean claimGuestMotion(RobotId robotId) {
+        AdapterSession current = session;
+        return current != null && current.claimGuestMotion(robotId);
+    }
+
+    public static void releaseGuestMotion(RobotId robotId) {
+        AdapterSession current = session;
+        if (current != null) {
+            current.releaseGuestMotion(robotId);
+        }
+    }
+
+    public static boolean isGuestMotionOwner(RobotId robotId) {
+        AdapterSession current = session;
+        return current != null && current.isGuestMotionOwner(robotId);
+    }
+
     public static SubmitAck submit(RobotId robotId, CommandSpec command, String correlationId) {
         return submit(new CommandSubmission(robotId, correlationId, command));
     }

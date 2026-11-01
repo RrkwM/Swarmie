@@ -10,11 +10,14 @@ sys.path.insert(0, str(SDK_ROOT / "tests"))
 
 from swarmie import (  # noqa: E402
     AckStatus,
+    BlockPos,
     CancelStatus,
     CommandState,
     CommandType,
     EventType,
+    InventoryState,
     MineBlock,
+    ObservationStatus,
     ProtocolError,
     Stop,
     TimedFlight,
@@ -23,7 +26,12 @@ from swarmie import (  # noqa: E402
     normalize_robot_id,
 )
 from swarmie import protocol  # noqa: E402
-from mock_server import make_event, make_state  # noqa: E402
+from mock_server import (  # noqa: E402
+    make_block_observation,
+    make_event,
+    make_inventory,
+    make_state,
+)
 
 ROBOT = "11111111-1111-4111-8111-111111111111"
 
@@ -197,6 +205,74 @@ class StateAndSetpointParsingTest(unittest.TestCase):
                     "serverTick": 1,
                 }
             )
+
+    def test_inventory_parser_keeps_slot_order_and_selection(self):
+        inventory = protocol.parse_inventory(
+            make_inventory(
+                ROBOT,
+                epoch=99,
+                tick=12,
+                selected_slot=2,
+                items={
+                    0: {"itemId": "minecraft:wheat_seeds", "count": 6},
+                    2: {"itemId": "minecraft:iron_hoe", "count": 1},
+                },
+            )
+        )
+        self.assertIsInstance(inventory, InventoryState)
+        self.assertEqual(inventory.selected_slot, 2)
+        self.assertEqual(inventory.server_epoch, 99)
+        self.assertEqual(inventory.server_tick, 12)
+        self.assertEqual(inventory.slots[0].item_id, "minecraft:wheat_seeds")
+        self.assertEqual(inventory.slots[2].count, 1)
+        self.assertTrue(inventory.slots[1].empty)
+
+    def test_inventory_parser_rejects_unordered_or_short_slots(self):
+        payload = make_inventory(ROBOT)
+        payload["slots"][0]["slot"] = 1
+        with self.assertRaises(ProtocolError):
+            protocol.parse_inventory(payload)
+
+        short = make_inventory(ROBOT)
+        short["slots"] = short["slots"][:8]
+        with self.assertRaises(ProtocolError):
+            protocol.parse_inventory(short)
+
+    def test_block_observation_distinguishes_unloaded_from_air(self):
+        air = protocol.parse_block_observation(
+            make_block_observation(
+                ROBOT,
+                {"x": 1, "y": 64, "z": -3},
+                status="OK",
+                block_id="minecraft:air",
+                air=True,
+                epoch=99,
+                tick=12,
+            )
+        )
+        self.assertEqual(air.status, ObservationStatus.OK)
+        self.assertTrue(air.block.air)
+        self.assertEqual(air.position, BlockPos(1, 64, -3))
+
+        unloaded = protocol.parse_block_observation(
+            make_block_observation(
+                ROBOT,
+                {"x": 100000, "y": 64, "z": 100000},
+                status="UNLOADED",
+                reason="chunk is not loaded",
+                epoch=99,
+                tick=13,
+            )
+        )
+        self.assertEqual(unloaded.status, ObservationStatus.UNLOADED)
+        self.assertIsNone(unloaded.block)
+        self.assertEqual(unloaded.reason, "chunk is not loaded")
+
+    def test_block_observation_parser_rejects_fabricated_air(self):
+        payload = make_block_observation(ROBOT, {"x": 0, "y": 64, "z": 0}, status="OK")
+        payload["block"] = None
+        with self.assertRaises(ProtocolError):
+            protocol.parse_block_observation(payload)
 
 
 class EventParsingTest(unittest.TestCase):

@@ -10,12 +10,15 @@ sys.path.insert(0, str(SDK_ROOT / "tests"))
 
 from swarmie import (  # noqa: E402
     AckStatus,
+    BlockPos,
     CancelStatus,
     CancelUnknown,
     CommandRejected,
     CommandState,
     ConnectionClosed,
     EventGapError,
+    InventoryState,
+    ObservationStatus,
     ProtocolError,
     RobotNotFound,
     RobotNotLoaded,
@@ -27,7 +30,14 @@ from swarmie import (  # noqa: E402
     Vec3,
     WaitTimeout,
 )
-from mock_server import MockSwarmieServer, make_event, make_robot, make_state  # noqa: E402
+from mock_server import (  # noqa: E402
+    MockSwarmieServer,
+    make_block_observation,
+    make_event,
+    make_inventory,
+    make_robot,
+    make_state,
+)
 
 ROBOT_A = "11111111-1111-4111-8111-111111111111"
 ROBOT_B = "22222222-2222-4222-8222-222222222222"
@@ -186,6 +196,110 @@ class ClientTestCase(unittest.TestCase):
         with self.assertRaises(RobotNotLoaded) as caught:
             self.client.robot(ROBOT_A).set_velocity(Vec3(0.1, 0.0, 0.0))
         self.assertEqual(caught.exception.code, "ROBOT_NOT_LOADED")
+
+    # ------------------------------------------------------------------
+    # Inventory and explicit block observation
+    # ------------------------------------------------------------------
+    def test_inventory_reads_stable_slots_selection_and_freshness(self):
+        self.server.inventory_handler = lambda request: make_inventory(
+            ROBOT_A,
+            epoch=4242,
+            tick=77,
+            selected_slot=1,
+            items={
+                0: {"itemId": "minecraft:wheat_seeds", "count": 4},
+                1: {"itemId": "minecraft:iron_hoe", "count": 1},
+            },
+        )
+
+        inventory = self.client.robot(ROBOT_A).inventory()
+
+        self.assertIsInstance(inventory, InventoryState)
+        self.assertEqual(inventory.robot_id, ROBOT_A)
+        self.assertEqual(inventory.server_epoch, 4242)
+        self.assertEqual(inventory.server_tick, 77)
+        self.assertEqual(inventory.selected_slot, 1)
+        self.assertEqual(len(inventory.slots), 9)
+        self.assertEqual(inventory.slots[0].item_id, "minecraft:wheat_seeds")
+        self.assertEqual(inventory.slots[0].count, 4)
+        self.assertEqual(inventory.slots[1].item_id, "minecraft:iron_hoe")
+        self.assertTrue(inventory.slots[2].empty)
+        self.assertEqual([slot.slot for slot in inventory.slots], list(range(9)))
+        request = [r for r in self.server.requests if r.get("op") == "inventory"][-1]
+        self.assertEqual(request["robot"], ROBOT_A)
+
+    def test_inventory_unloaded_robot_is_explicit(self):
+        self.server.error_for_op = {
+            "op": "inventory",
+            "code": "ROBOT_NOT_LOADED",
+            "message": "robot is not loaded",
+        }
+        with self.assertRaises(RobotNotLoaded) as caught:
+            self.client.robot(ROBOT_A).inventory()
+        self.assertEqual(caught.exception.code, "ROBOT_NOT_LOADED")
+
+    def test_observe_block_returns_explicit_snapshot(self):
+        self.server.block_handler = lambda request: make_block_observation(
+            ROBOT_A,
+            request["position"],
+            status="OK",
+            block_id="minecraft:farmland",
+            properties={"moisture": "7"},
+            epoch=4242,
+            tick=88,
+        )
+
+        observation = self.client.robot(ROBOT_A).observe_block(BlockPos(10, 64, -3))
+
+        self.assertEqual(observation.robot_id, ROBOT_A)
+        self.assertEqual(observation.position, BlockPos(10, 64, -3))
+        self.assertEqual(observation.status, ObservationStatus.OK)
+        self.assertEqual(observation.server_epoch, 4242)
+        self.assertEqual(observation.server_tick, 88)
+        self.assertEqual(observation.block.block_id, "minecraft:farmland")
+        self.assertEqual(observation.block.properties["moisture"], "7")
+        self.assertFalse(observation.block.air)
+
+    def test_unloaded_block_is_not_air(self):
+        self.server.block_handler = lambda request: make_block_observation(
+            ROBOT_A,
+            request["position"],
+            status="UNLOADED",
+            reason="chunk is not loaded",
+            epoch=4242,
+            tick=89,
+        )
+
+        observation = self.client.robot(ROBOT_A).observe_block(BlockPos(100000, 64, 100000))
+
+        self.assertEqual(observation.status, ObservationStatus.UNLOADED)
+        self.assertIsNone(observation.block)
+        self.assertEqual(observation.reason, "chunk is not loaded")
+        self.assertEqual(observation.server_epoch, 4242)
+        self.assertEqual(observation.server_tick, 89)
+
+    def test_observe_block_unknown_robot_is_explicit(self):
+        self.server.error_for_op = {
+            "op": "observe_block",
+            "code": "ROBOT_NOT_FOUND",
+            "message": "robot is not registered",
+        }
+        with self.assertRaises(RobotNotFound):
+            self.client.robot(ROBOT_A).observe_block(BlockPos(0, 64, 0))
+
+    def test_observe_block_unloaded_robot_is_explicit(self):
+        self.server.error_for_op = {
+            "op": "observe_block",
+            "code": "ROBOT_NOT_LOADED",
+            "message": "robot is not loaded",
+        }
+        with self.assertRaises(RobotNotLoaded) as caught:
+            self.client.robot(ROBOT_A).observe_block(BlockPos(0, 64, 0))
+        self.assertEqual(caught.exception.code, "ROBOT_NOT_LOADED")
+
+    def test_observe_block_rejects_non_block_position(self):
+        with self.assertRaises(ValueError):
+            self.client.robot(ROBOT_A).observe_block({"x": 0, "y": 64, "z": 0})
 
     # ------------------------------------------------------------------
     # Acknowledge versus result

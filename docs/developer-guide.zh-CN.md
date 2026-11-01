@@ -28,6 +28,8 @@ src/main/java/dev/swarmie/
   SwarmieMod.java                入口、EntityType、刷怪蛋、Fabric 事件
   SwarmieEntity.java             真实 Entity 身体
   SwarmieFlightController.java   速度控制
+  dcpu/                          pure-Java DCPU-16 subset + MMIO
+  dcpu/bridge/                   test-only Entity/Runtime bridge
   runtime/                       FIFO、命令状态机
   interaction/                   FakePlayer 原生交互
   inventory/                     9 槽库存
@@ -187,7 +189,8 @@ CancelAck ack = SwarmieAdapter.cancel(robot, "my-correlation-id");
 ./gradlew test
 ```
 
-当前基线：46 项 JUnit。
+当前基线：主 Mod 71 项 JUnit、契约 12 项 JUnit；Python SDK 66 项 mock 测试。DCPU/MMIO 是独立的 test-only spike，不是公共 API；见
+[`dcpu-mmio-bridge-experiment.md`](dcpu-mmio-bridge-experiment.md)。
 
 测试分布：
 

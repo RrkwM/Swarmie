@@ -43,8 +43,10 @@ One JSON object per line.
 {"op":"submit","robot":"<uuid>","correlation":"c1","command":{"type":"STOP"},"id":"3"}
 {"op":"cancel","robot":"<uuid>","correlation":"c1","id":"4"}
 {"op":"state","robot":"<uuid>","id":"5"}
-{"op":"setpoint","robot":"<uuid>","channel":"velocity","value":{"x":0.1,"y":0,"z":0},"id":"6"}
-{"op":"setpoint","robot":"<uuid>","channel":"velocity","clear":true,"id":"7"}
+{"op":"inventory","robot":"<uuid>","id":"6"}
+{"op":"observe_block","robot":"<uuid>","position":{"x":10,"y":64,"z":-3},"id":"7"}
+{"op":"setpoint","robot":"<uuid>","channel":"velocity","value":{"x":0.1,"y":0,"z":0},"id":"8"}
+{"op":"setpoint","robot":"<uuid>","channel":"velocity","clear":true,"id":"9"}
 ```
 
 Commands:
@@ -56,11 +58,23 @@ Commands:
 {"type":"USE_ITEM_ON_BLOCK","position":{"x":500,"y":99,"z":500},"face":"UP","hit":{"x":500.5,"y":100,"z":500.5}}
 ```
 
-Responses: `hello`, `robots`, `state`, `events`, `ack`, `cancel_ack`,
-`setpoint_ack`, `error`, `pong`. State is a server-authoritative snapshot whose
-`serverTick` is its freshness point. Setpoint acceptance is synchronous; it is
-not an action and no per-update events are emitted. Events are also pushed at
-END tick.
+Responses: `hello`, `robots`, `state`, `inventory`, `block_observation`,
+`events`, `ack`, `cancel_ack`, `setpoint_ack`, `error`, `pong`. State is a
+server-authoritative snapshot whose `serverTick` is its freshness point.
+Inventory is a stable nine-slot snapshot with `selectedSlot` and
+`serverEpoch`/`serverTick`; empty slots have no item id and count 0. Block
+observation is a single explicit coordinate read: `status=OK` carries a bounded
+block id/properties/air summary, while `UNLOADED`, `OUT_OF_BOUNDS`, `INVALID`,
+`UNSUPPORTED` or `ERROR` carries no block and must not be treated as air.
+Setpoint acceptance is synchronous; it is not an action and no per-update events
+are emitted. Events are also pushed at END tick.
+
+`state`, `inventory` and `observe_block` require a `LOADED` robot. Unknown,
+unloaded and removed robot UUIDs return `ROBOT_NOT_FOUND`, `ROBOT_NOT_LOADED`
+and `ROBOT_REMOVED`; a missing snapshot returns `ROBOT_UNAVAILABLE`.
+Malformed `position` fields return `INVALID_ARGUMENT`. A valid but unloaded
+target chunk is a successful `block_observation` with `status=UNLOADED`, not a
+transport error.
 
 A velocity setpoint and legacy `TIMED_FLIGHT`/`STOP` cannot own the motion
 channel simultaneously; the loser receives `MOTION_CHANNEL_BUSY`. Clear the
@@ -72,8 +86,9 @@ protocol.
 
 The first official client library is the Python SDK in `tools/sdk/swarmie`,
 documented in [`python-sdk.md`](python-sdk.md). It wraps discovery, explicit
-UUID selection, live self-state, persistent velocity setpoints, submit/wait/
-cancel and epoch/gap handling; it remains standard-library-only and synchronous.
+UUID selection, live self-state, inventory, explicit block observation,
+persistent velocity setpoints, submit/wait/cancel and epoch/gap handling; it
+remains standard-library-only and synchronous.
 
 ```powershell
 python tools/sdk/examples/01_list_robots.py
