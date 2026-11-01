@@ -25,9 +25,9 @@ public class SwarmieEntityRenderer extends EntityRenderer<SwarmieEntity, Swarmie
     /**
      * Visual-only hover offset. The server position stays at the entity's
      * authoritative feet, while the shell floats in the upper half of the
-     * block and its ear tips approach the block's top face.
+     * block without looking attached to the ground.
      */
-    private static final float HOVER_OFFSET = 0.42F;
+    private static final float HOVER_OFFSET = 0.32F;
 
     private final SwarmieEntityModel model;
 
@@ -60,7 +60,7 @@ public class SwarmieEntityRenderer extends EntityRenderer<SwarmieEntity, Swarmie
         // Idle hover: visual-only vertical bob; server position and hitbox do
         // not move. The four wing parts have their own idle animation in the
         // model setup.
-        float bob = (float) Math.sin(state.ageInTicks * 0.075F) * 0.025F;
+        float bob = (float) Math.sin(state.ageInTicks * 0.09F) * 0.055F;
         poseStack.translate(0.0F, HOVER_OFFSET + bob, 0.0F);
         poseStack.rotateDegrees(Axis.YP, 180.0F - state.yRot);
         // Four robots fit in one block (2x2), so the visual shell is about

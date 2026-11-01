@@ -137,16 +137,16 @@ public class SwarmieEntityModel extends EntityModel<SwarmieRenderState> {
         // the lower side fins have a separate, slightly faster idle rhythm.
         float earWave = (float) Math.sin(t * 0.075F);
         float earLift = (float) Math.cos(t * 0.052F);
-        this.earLeft.zRot = -0.34F + earWave * 0.075F;
-        this.earRight.zRot = 0.34F - earWave * 0.075F;
-        this.earLeft.xRot = 0.12F + earLift * 0.035F;
-        this.earRight.xRot = 0.12F - earLift * 0.035F;
+        this.earLeft.zRot = -0.34F + earWave * 0.09F;
+        this.earRight.zRot = 0.34F - earWave * 0.09F;
+        this.earLeft.xRot = 0.12F + earLift * 0.045F;
+        this.earRight.xRot = 0.12F - earLift * 0.045F;
 
         float finWave = (float) Math.sin(t * 0.11F + 1.4F);
         float finSweep = (float) Math.cos(t * 0.085F);
-        this.finLeft.zRot = -0.18F + finWave * 0.11F;
-        this.finRight.zRot = 0.18F - finWave * 0.11F;
-        this.finLeft.yRot = finSweep * 0.08F;
-        this.finRight.yRot = -finSweep * 0.08F;
+        this.finLeft.zRot = -0.18F + finWave * 0.13F;
+        this.finRight.zRot = 0.18F - finWave * 0.13F;
+        this.finLeft.yRot = finSweep * 0.09F;
+        this.finRight.yRot = -finSweep * 0.09F;
     }
 }
