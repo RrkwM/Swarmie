@@ -42,7 +42,7 @@ remote-network project.
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | passing |
-| JUnit | 56 passing |
+| JUnit | 71 passing |
 | Release JAR | `swarmie-0.1.0.jar` |
 | JAR SHA-256 | `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | Development JAR | `swarmie-0.1.1-SNAPSHOT.jar` |
@@ -156,6 +156,7 @@ Hard rules:
 | Local JSONL/Python development transport | [`docs/local-transport.md`](docs/local-transport.md) |
 | Python SDK (discovery, commands, events) | [`docs/python-sdk.md`](docs/python-sdk.md) |
 | Minimal farming preparation workflow | [`docs/farming-workflow.md`](docs/farming-workflow.md) |
+| DCPU-16/MMIO entity bridge spike | [`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md) |
 | Semantic versioning and release process | [`docs/versioning.md`](docs/versioning.md) |
 | Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
 | Test evidence matrix | [`docs/test-matrix.md`](docs/test-matrix.md) |

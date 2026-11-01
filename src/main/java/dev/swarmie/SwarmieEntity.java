@@ -1,6 +1,7 @@
 package dev.swarmie;
 
 import dev.swarmie.adapter.SwarmieAdapter;
+import dev.swarmie.dcpu.bridge.DcpuController;
 import dev.swarmie.interaction.InteractionActor;
 import dev.swarmie.inventory.SwarmieInventory;
 import dev.swarmie.query.BlockQueryResult;
@@ -50,6 +51,7 @@ public class SwarmieEntity extends Entity implements FlightTarget {
     private boolean worldQueryEnabled = true;
     private boolean localSensorEnabled = true;
     private boolean adapterSessionEnded;
+    private DcpuController dcpuExperiment;
 
     public SwarmieEntity(EntityType<? extends SwarmieEntity> type, Level level) {
         super(type, level);
@@ -67,6 +69,14 @@ public class SwarmieEntity extends Entity implements FlightTarget {
     /** Robot-owned inventory; never a view over a player inventory. */
     public SwarmieInventory inventory() {
         return this.inventory;
+    }
+
+    /** Test-only DCPU attachment; no public API exposes this. */
+    public void attachDcpuExperiment(DcpuController controller) {
+        if (this.dcpuExperiment != null) {
+            this.dcpuExperiment.close();
+        }
+        this.dcpuExperiment = controller;
     }
 
     /** Independently replaceable world-query capability. */
@@ -177,6 +187,9 @@ public class SwarmieEntity extends Entity implements FlightTarget {
 
         // Runtime first: it may set a new flight target or run an interaction
         // command for this tick.
+        if (this.dcpuExperiment != null) {
+            this.dcpuExperiment.tick();
+        }
         this.runtime.tick();
 
         Vec3 current = this.getDeltaMovement();
@@ -225,6 +238,10 @@ public class SwarmieEntity extends Entity implements FlightTarget {
             return;
         }
         this.adapterSessionEnded = true;
+        if (this.dcpuExperiment != null) {
+            this.dcpuExperiment.close();
+            this.dcpuExperiment = null;
+        }
         this.interactionActor.close();
         this.runtime.onOwnerUnloaded(reason);
     }

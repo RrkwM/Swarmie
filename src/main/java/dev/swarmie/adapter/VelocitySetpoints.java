@@ -112,6 +112,10 @@ final class VelocitySetpoints {
         return this.targets.containsKey(robotId.value());
     }
 
+    synchronized boolean hasLegacyMotion(RobotId robotId) {
+        return this.legacyMotion.getOrDefault(robotId.value(), 0) > 0;
+    }
+
     /**
      * Consumes a pending clear and returns the latest target. Called on the
      * server thread once per tick.

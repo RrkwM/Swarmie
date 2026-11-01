@@ -15,8 +15,8 @@ English | [简体中文](test-matrix.zh-CN.md)
 | Contract has no Minecraft/Fabric imports | S | 30 source files checked |
 | Contract classes in final JAR | S | `dev/swarmie/contract/*.class` |
 | `:contract:test` | A | 12 passed |
-| Root `test` | A | 56 passed |
-| Total | A | **68 passed** |
+| Root `test` | A | 71 passed |
+| Total | A | **83 passed** |
 | No-cache test | A | `cleanTest test --no-build-cache` passed |
 | Offline build | S | `--offline build` passed |
 | 0.1.0 release JAR | S | 162,555 bytes, SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
@@ -42,6 +42,11 @@ SwarmieRuntimeEventTest       4
 SwarmieRuntimeTest            5
 SensingTest                   3
 SwarmieSpawnEggDataTest       3
+Dcpu16Test                    7
+MotionDeviceTest              4
+ClockDeviceTest               1
+DcpuFixtureProgramTest        2
+DcpuRuntimeBridgeTest         1
 ```
 
 ## 2. Real client

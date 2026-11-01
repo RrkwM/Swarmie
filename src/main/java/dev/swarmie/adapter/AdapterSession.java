@@ -62,6 +62,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -89,6 +90,7 @@ public final class AdapterSession {
     private final RobotStateStore states = new RobotStateStore();
     private final RobotInventoryStore inventories = new RobotInventoryStore();
     private final Queue<BlockRequest> blockRequests = new ConcurrentLinkedQueue<>();
+    private final Set<UUID> guestMotionOwners = ConcurrentHashMap.newKeySet();
     private volatile long serverTick;
     private long lastPublishedSequence;
     private boolean stopped;
@@ -120,6 +122,7 @@ public final class AdapterSession {
         this.stopped = true;
         this.cancels.clear();
         this.cancelCount.set(0);
+        this.guestMotionOwners.clear();
         if (this.transport != null) {
             this.transport.close();
             this.transport = null;
@@ -210,6 +213,7 @@ public final class AdapterSession {
         this.velocitySetpoints.forget(id.value(), robot);
         this.states.remove(id);
         this.inventories.remove(id);
+        this.guestMotionOwners.remove(id.value());
         robot.onAdapterSessionEnd("robot unloaded");
         robot.runtime().setListener(null);
         for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -228,6 +232,7 @@ public final class AdapterSession {
             this.velocitySetpoints.forget(id.value(), robot);
             this.states.remove(id);
             this.inventories.remove(id);
+            this.guestMotionOwners.remove(id.value());
             robot.onAdapterSessionEnd("dimension change");
             robot.runtime().setListener(null);
             for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -245,6 +250,7 @@ public final class AdapterSession {
         this.velocitySetpoints.forget(id.value(), robot);
         this.states.remove(id);
         this.inventories.remove(id);
+        this.guestMotionOwners.remove(id.value());
         robot.onAdapterSessionEnd("owner removed");
         robot.runtime().setListener(null);
         for (InboundQueue.Entry entry : this.inbound.removeRobot(id)) {
@@ -268,6 +274,33 @@ public final class AdapterSession {
     /** Latest end-tick inventory snapshot for a loaded robot. */
     public Optional<InventoryState> readInventory(RobotId robotId) {
         return this.inventories.find(robotId);
+    }
+
+    /**
+     * Internal experiment ownership: one guest may own the motion channel.
+     * It is rejected if the JSONL velocity/legacy channel already owns it.
+     */
+    public boolean claimGuestMotion(RobotId robotId) {
+        if (this.stopped) {
+            return false;
+        }
+        Optional<RobotDescriptor> descriptor = this.registry.find(robotId);
+        if (descriptor.isEmpty() || descriptor.get().lifecycle() != RobotLifecycleState.LOADED) {
+            return false;
+        }
+        if (this.velocitySetpoints.isSetpointActive(robotId)
+                || this.velocitySetpoints.hasLegacyMotion(robotId)) {
+            return false;
+        }
+        return this.guestMotionOwners.add(robotId.value());
+    }
+
+    public void releaseGuestMotion(RobotId robotId) {
+        this.guestMotionOwners.remove(robotId.value());
+    }
+
+    public boolean isGuestMotionOwner(RobotId robotId) {
+        return this.guestMotionOwners.contains(robotId.value());
     }
 
     /**
@@ -441,6 +474,11 @@ public final class AdapterSession {
                     ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded",
                     this.serverEpoch, this.serverTick);
         }
+        if (this.guestMotionOwners.contains(robotId.value())) {
+            return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId), false,
+                    ErrorCode.MOTION_CHANNEL_BUSY,
+                    "DCPU guest owns the motion channel", this.serverEpoch, this.serverTick);
+        }
         if (!clear && velocity == null) {
             return SetpointAck.rejected(robotId, this.velocitySetpoints.revision(robotId),
                     this.velocitySetpoints.isSetpointActive(robotId),
@@ -524,6 +562,12 @@ public final class AdapterSession {
             if (lifecycle == RobotLifecycleState.UNLOADED) {
                 return SubmitAck.rejected(submission.robotId(), submission.correlationId(),
                         submission.command().type(), ErrorCode.ROBOT_NOT_LOADED, "robot is not loaded");
+            }
+            if (this.guestMotionOwners.contains(submission.robotId().value())
+                    && isLegacyMotion(submission.command().type())) {
+                return SubmitAck.rejected(submission.robotId(), submission.correlationId(),
+                        submission.command().type(), ErrorCode.MOTION_CHANNEL_BUSY,
+                        "DCPU guest owns the motion channel");
             }
         }
 

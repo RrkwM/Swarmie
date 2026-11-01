@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import dev.swarmie.SwarmieEntity;
 import dev.swarmie.SwarmieMod;
 import dev.swarmie.adapter.SwarmieAdapter;
+import dev.swarmie.dcpu.bridge.DcpuExperiment;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -76,6 +77,9 @@ public final class LifecycleTestHarness {
     }
 
     public static void initialize() {
+        if (!FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            return;
+        }
         Path config = FabricLoader.getInstance().getConfigDir().resolve(CONFIG_FILE);
         if (!Files.isRegularFile(config)) {
             return;
@@ -179,6 +183,7 @@ public final class LifecycleTestHarness {
         JsonObject result = success("spawn");
         result.addProperty("robot", testRobotId.toString());
         addRobotState(result, robot);
+        DcpuExperiment.attachIfEnabled(robot);
         return result;
     }
 

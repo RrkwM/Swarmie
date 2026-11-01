@@ -261,7 +261,7 @@ and speed limits are uncompensated.
 
 ```text
 .\gradlew.bat test --offline --rerun-tasks
-main module: 56 passed, 0 failed
+main module: 71 passed, 0 failed
 contract module: 12 passed, 0 failed
 ```
 
@@ -534,7 +534,7 @@ read-only.
 
 ### 11.4 Test layers for this slice
 
-- Java: main 56 passed, contract 12 passed, 0 failed.
+- Java: main 71 passed, contract 12 passed, 0 failed.
 - Python SDK/mock: 66 passed.
 - Real integrated server: inventory, air, solid block, unloaded chunk,
   out-of-bounds and unknown UUID as above.
