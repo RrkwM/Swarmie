@@ -8,6 +8,47 @@ All notable changes to Swarmie are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-02
+
+Pre-1.0 usability patch. The Adapter contract remains `0.1`.
+
+### Added
+
+- `/swarmie list`: loaded robots numbered by UUID with UUID and position.
+- `/swarmie select <index|uuid>`: select by list index, full UUID or unique UUID
+  prefix; `/swarmie selected` shows the current selection.
+- `/swarmie spawn`: create a robot two blocks in front of the command source and
+  select it.
+- `/swarmie remove`: discard the explicitly selected robot; it does not fall
+  back to deleting the nearest robot.
+- `/swarmie help selection` and updated bilingual player guide.
+
+### Changed
+
+- `fly`, `stop`, `status` and `results` can omit the target and use the selected
+  robot. Selector-based multi-target forms remain available.
+- Hover presentation lowered to a 0.32-block visual offset.
+- Idle vertical bob increased to about +/-0.055 blocks; ear and side-fin idle
+  motion made more visible.
+
+### Verified
+
+- 75 Java main tests and 12 contract tests.
+- 66 Python SDK/mock-server tests.
+- 33 audit tests; completeness validator `errors=0`, `review_findings=0`.
+- Real client chat: `spawn`, `list`, `status`, short `fly`/`stop` and explicit
+  `remove`.
+- Real client visual check of hover offset and idle animation.
+- Release JAR: `swarmie-0.1.2.jar`, 243,656 bytes, SHA-256
+  `0883966f087167af65e0a079deec261c10577027de818738a688b3e71af7ce9a`.
+
+### Known limitations
+
+- DCPU/MMIO remains a test-only subset experiment.
+- SDB v0 remains a draft specification; no implementation.
+- `LocalSensor` remains internal/debug, not a public sensor API.
+- No general farming, pathfinding, task scheduling, orientation setpoint or
+  public region/entity/sensor observation.
 ## [0.1.1] - 2026-11-02
 
 Pre-1.0 feature release. The Adapter contract remains `0.1`; the new contract

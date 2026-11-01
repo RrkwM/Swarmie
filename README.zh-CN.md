@@ -10,7 +10,7 @@
 > Adapter 契约。
 
 仓库：https://github.com/RrkwM/Swarmie  
-最新 Release：https://github.com/RrkwM/Swarmie/releases/tag/v0.1.1
+最新 Release：https://github.com/RrkwM/Swarmie/releases/tag/v0.1.2
 Wiki：https://github.com/RrkwM/Swarmie/wiki
 
 ## 项目是什么
@@ -33,15 +33,15 @@ Swarmie 增加了一个真实的 Minecraft `Entity`，包含：
 
 | 项目 | 状态 |
 |---|---|
-| 版本 | `main` 为 `0.1.2-SNAPSHOT`；最新 Release 为 `0.1.1`（pre-1.0） |
+| 版本 | `0.1.2`（最新 Release，pre-1.0） |
 | Java | 必须 25 |
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | 通过 |
 | JUnit | 75 项通过 |
-| Release JAR | `swarmie-0.1.1.jar` |
-| JAR SHA-256 | `0913341d63e587200d5bbccc91e1309e4ee7297e36abaa31ece56d60490ed031` |
-| 开发构建 | `swarmie-0.1.2-SNAPSHOT.jar`（发布后） |
+| Release JAR | `swarmie-0.1.2.jar` |
+| JAR SHA-256 | `0883966f087167af65e0a079deec261c10577027de818738a688b3e71af7ce9a` |
+| 开发构建 | `swarmie-0.1.3-SNAPSHOT.jar` |
 
 Adapter 契约为 `0.1`，仍处于 pre-stable。
 
@@ -49,18 +49,18 @@ Adapter 契约为 `0.1`，仍处于 pre-stable。
 
 需要 Minecraft 26.3、Fabric Loader 0.20.1、Fabric API 0.165.0+26.3、Java 25。
 
-1. 从 [Releases](https://github.com/RrkwM/Swarmie/releases/tag/v0.1.1) 下载
-   `swarmie-0.1.1.jar`。
+1. 从 [Releases](https://github.com/RrkwM/Swarmie/releases/tag/v0.1.2) 下载
+   `swarmie-0.1.2.jar`。
 2. 与 Fabric API 一起放入 `mods/`。
 3. 使用 Java 25 启动游戏。
 
-**0.1.1 是管理员/开发者 pre-1.0 版本。** `0.1.1` Release 已包含可合成机器人刷怪蛋；OP 可以用：
+**0.1.2 是管理员/开发者 pre-1.0 版本。** `0.1.2` Release 已包含可合成机器人刷怪蛋；OP 可以用：
 
 ```mcfunction
 /summon swarmie:swarmie ~ ~ ~
 ```
 
-`0.1.1` Release 新增可合成的
+`0.1.2` Release 新增可合成的
 `swarmie:swarmie_spawn_egg`（4 铁锭、4 红石、1 铜锭），显示在“刷怪蛋”创造模式
 标签页。使用刷怪蛋会创建**新**机器人（新 UUID、空库存），不会捕获、存储或恢复
 已有机器人。`/summon` 仍然可用。
@@ -99,7 +99,7 @@ Windows：
 产物：
 
 ```text
-build/libs/swarmie-0.1.2-SNAPSHOT.jar
+build/libs/swarmie-0.1.2.jar
 ```
 
 Python SDK 测试（仅标准库，无需启动 Minecraft）：
@@ -150,7 +150,7 @@ Adapter 层
 | 最小农业准备流程 | [`docs/farming-workflow.md`](docs/farming-workflow.md) |
 | DCPU-16/MMIO 实验 | [`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md) |
 | SDB v0 设备总线 ABI（草案） | [`docs/device-bus-v0.md`](docs/device-bus-v0.md) |
-| 0.1.1 Release Notes | [`docs/releases/v0.1.1.md`](docs/releases/v0.1.1.md) |
+| 0.1.2 Release Notes | [`docs/releases/v0.1.2.md`](docs/releases/v0.1.2.md) |
 | 语义化版本与发布流程 | [`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md) |
 | 变更日志 | [`CHANGELOG.zh-CN.md`](CHANGELOG.zh-CN.md) |
 | 测试证据矩阵 | [`docs/test-matrix.zh-CN.md`](docs/test-matrix.zh-CN.md) |
@@ -160,9 +160,9 @@ Adapter 层
 
 ## 版本与发布
 
-Swarmie 遵循 [Semantic Versioning 2.0.0](https://semver.org/)。`main` 为
-`0.1.2-SNAPSHOT`；`0.1.1` 是当前功能 Release，`0.1.0` 是首个公开 pre-1.0
-版本。规则与发布检查清单见 [`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md)。
+Swarmie 遵循 [Semantic Versioning 2.0.0](https://semver.org/)。`0.1.2` 是
+当前功能 Release，`0.1.0` 是首个公开 pre-1.0 版本。规则与发布检查清单见
+[`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md)。
 
 Release 资产包含 JAR 与 `.sha256`。
 

@@ -8,6 +8,39 @@ Swarmie 的重要变化记录在此。格式参考
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-02
+
+pre-1.0 可用性补丁。Adapter 契约仍为 `0.1`。
+
+### 新增
+
+- `/swarmie list`：按 UUID 排序列出已加载机器人，带 UUID 与位置。
+- `/swarmie select <index|uuid>`：按列表序号、完整 UUID 或唯一 UUID 前缀选择；`/swarmie selected` 显示当前选择。
+- `/swarmie spawn`：在命令来源前方两格创建机器人并选中。
+- `/swarmie remove`：删除明确选中的机器人，不会回退为删除最近机器人。
+- `/swarmie help selection` 和更新后的双语玩家指南。
+
+### 变更
+
+- `fly`、`stop`、`status`、`results` 可以省略 target，使用选中的机器人；selector 多目标形式仍保留。
+- 悬浮视觉偏移降到 0.32 格。
+- idle 上下浮动提高到约 ±0.055 格；耳翼和侧翼摆幅更明显。
+
+### 已验证
+
+- 75 项 Java main 测试、12 项 contract 测试。
+- 66 项 Python SDK/mock-server 测试。
+- 33 项 audit 测试；完整性校验 `errors=0`、`review_findings=0`。
+- 真实客户端聊天栏：`spawn`、`list`、`status`、短形式 `fly`/`stop`、显式 `remove`。
+- 真实客户端视觉检查：悬浮偏移与 idle 动画。
+- Release JAR：`swarmie-0.1.2.jar`，243,656 bytes，SHA-256 `0883966f087167af65e0a079deec261c10577027de818738a688b3e71af7ce9a`。
+
+### 已知限制
+
+- DCPU/MMIO 仍是 test-only 子集实验。
+- SDB v0 仅为草案，无实现。
+- `LocalSensor` 仍是 internal/debug，不是公共 Sensor API。
+- 没有通用农业、寻路、任务调度、orientation setpoint 或公共 region/entity/sensor observation。
 ## [0.1.1] - 2026-11-02
 
 pre-1.0 功能版本。Adapter 契约仍为 `0.1`；本次新增契约类型和 JSONL 操作为向后兼容追加。

@@ -10,7 +10,7 @@ English | [简体中文](README.zh-CN.md)
 > Minecraft-independent Adapter contract.
 
 Repository: https://github.com/RrkwM/Swarmie  
-Latest release: https://github.com/RrkwM/Swarmie/releases/tag/v0.1.1
+Latest release: https://github.com/RrkwM/Swarmie/releases/tag/v0.1.2
 Wiki: https://github.com/RrkwM/Swarmie/wiki
 
 ## What it is
@@ -37,15 +37,15 @@ remote-network project.
 
 | Item | Status |
 |---|---|
-| Version | `0.1.2-SNAPSHOT` on `main`; latest release `0.1.1` (pre-1.0) |
+| Version | `0.1.2` (latest release, pre-1.0) |
 | Java | 25 required |
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | passing |
 | JUnit | 75 passing |
-| Release JAR | `swarmie-0.1.1.jar` |
-| JAR SHA-256 | `0913341d63e587200d5bbccc91e1309e4ee7297e36abaa31ece56d60490ed031` |
-| Development JAR | `swarmie-0.1.2-SNAPSHOT.jar` (after release) |
+| Release JAR | `swarmie-0.1.2.jar` |
+| JAR SHA-256 | `0883966f087167af65e0a079deec261c10577027de818738a688b3e71af7ce9a` |
+| Development JAR | `swarmie-0.1.3-SNAPSHOT.jar` |
 
 The Adapter contract is `0.1` and still pre-stable.
 
@@ -54,19 +54,19 @@ The Adapter contract is `0.1` and still pre-stable.
 Requirements: Minecraft 26.3, Fabric Loader 0.20.1, Fabric API 0.165.0+26.3,
 Java 25.
 
-1. Download `swarmie-0.1.1.jar` from
-   [Releases](https://github.com/RrkwM/Swarmie/releases/tag/v0.1.1).
+1. Download `swarmie-0.1.2.jar` from
+   [Releases](https://github.com/RrkwM/Swarmie/releases/tag/v0.1.2).
 2. Put it in `mods/` together with Fabric API.
 3. Start the game with Java 25.
 
-**0.1.1 is an admin/developer pre-1.0 release.** It includes the craftable
+**0.1.2 is an admin/developer pre-1.0 release.** It includes the craftable
 robot spawn egg; an OP can also create a robot with:
 
 ```mcfunction
 /summon swarmie:swarmie ~ ~ ~
 ```
 
-The `0.1.1` release adds a craftable
+The `0.1.2` release adds a craftable
 `swarmie:swarmie_spawn_egg` (four iron ingots, four redstone, one copper ingot)
 in the Spawn Eggs creative tab. Using the egg creates a new robot with a fresh
 UUID and empty inventory; it does not capture, store or restore an existing
@@ -107,7 +107,7 @@ Windows:
 Output:
 
 ```text
-build/libs/swarmie-0.1.2-SNAPSHOT.jar
+build/libs/swarmie-0.1.2.jar
 ```
 
 Python SDK tests (standard library only; no Minecraft required):
@@ -159,7 +159,7 @@ Hard rules:
 | Minimal farming preparation workflow | [`docs/farming-workflow.md`](docs/farming-workflow.md) |
 | DCPU-16/MMIO entity bridge spike | [`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md) |
 | SDB v0 device bus ABI (draft) | [`docs/device-bus-v0.md`](docs/device-bus-v0.md) |
-| 0.1.1 release notes | [`docs/releases/v0.1.1.md`](docs/releases/v0.1.1.md) |
+| 0.1.2 release notes | [`docs/releases/v0.1.2.md`](docs/releases/v0.1.2.md) |
 | Semantic versioning and release process | [`docs/versioning.md`](docs/versioning.md) |
 | Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
 | Test evidence matrix | [`docs/test-matrix.md`](docs/test-matrix.md) |
@@ -169,10 +169,10 @@ Hard rules:
 
 ## Versioning and releases
 
-Swarmie follows [Semantic Versioning 2.0.0](https://semver.org/). `main` is on
-`0.1.2-SNAPSHOT`; `0.1.1` is the current feature release and `0.1.0` was the
-first public pre-1.0 release. See [`docs/versioning.md`](docs/versioning.md) for
-bump rules and the release checklist.
+Swarmie follows [Semantic Versioning 2.0.0](https://semver.org/). `0.1.2` is the
+current feature release; `0.1.0` was the first public pre-1.0 release. See
+[`docs/versioning.md`](docs/versioning.md) for bump rules and the release
+checklist.
 
 Release assets include the JAR and its `.sha256`.
 

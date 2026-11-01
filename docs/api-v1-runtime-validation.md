@@ -20,7 +20,7 @@
 | Fabric API | 0.165.0+26.3 |
 | Java | Temurin 25.0.4.1+1 |
 | Loom / Gradle | 1.19.3 / 9.8.2 |
-| Mod build | `swarmie-0.1.1` from the current worktree |
+| Mod build | `swarmie-0.1.2` from the current worktree |
 | Launch | `.\gradlew.bat runClient --offline -PswarmieQuickPlay="New World"` |
 | Server | Minecraft integrated server, real server ticks |
 | Transport | localhost JSONL, `127.0.0.1:25580` |

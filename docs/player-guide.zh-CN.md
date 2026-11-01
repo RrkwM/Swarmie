@@ -2,7 +2,7 @@
 
 # Player Guide
 
-> 适用于 **Swarmie 0.1.1**（最新 Release）。当前是管理员/开发者预览，不是完整生存玩法。
+> 适用于 **Swarmie 0.1.2**（最新 Release）。当前是管理员/开发者预览，不是完整生存玩法。
 
 ## 1. 前置条件
 
@@ -19,9 +19,9 @@
 
 1. 安装 Fabric Loader 0.20.1 到 Minecraft 26.3。
 2. 从 [Releases](https://github.com/RrkwM/Swarmie/releases) 下载：
-   - `swarmie-0.1.1.jar`
-   - `swarmie-0.1.1.jar.sha256`
-3. 把 `swarmie-0.1.1.jar` 放入游戏目录的 `mods/`。
+   - `swarmie-0.1.2.jar`
+   - `swarmie-0.1.2.jar.sha256`
+3. 把 `swarmie-0.1.2.jar` 放入游戏目录的 `mods/`。
 4. 把对应版本的 Fabric API 也放入 `mods/`。
 5. 启动游戏。日志中应出现：
 
@@ -32,16 +32,16 @@ Swarmie initialized; registered entity type swarmie:swarmie
 ### 校验下载
 
 ```powershell
-Get-FileHash .\swarmie-0.1.1.jar -Algorithm SHA256
+Get-FileHash .\swarmie-0.1.2.jar -Algorithm SHA256
 ```
 
 应得到 Release 页面公布的 SHA-256。
 
 ## 3. 当前如何获得机器人
 
-### 0.1.1 Release
+### 0.1.2 Release
 
-0.1.1 Release 包含可合成刷怪蛋：
+0.1.2 Release 包含可合成刷怪蛋：
 
 | 物品 | 配方 | 说明 |
 |---|---|---|
@@ -225,12 +225,12 @@ down up north south east west
 
 ## 7. 当前限制
 
-- 未发布的刷怪蛋只会创建新机器人；没有把已有机器人拾取、存储或召回为物品的方式；
+- 刷怪蛋只会创建新机器人；没有把已有机器人拾取、存储或召回为物品的方式；
 - 没有 AI、寻路、自动避障、任务编排；
 - 没有 GUI 容器操作；
 - 没有远程/公网控制；localhost JSONL 仅开发者调试用；
 - 专用服务器、第二客户端、LOS、部分碰撞边界未验证；
-- 0.1.1 是 pre-1.0 版本，行为和 Adapter 契约仍可能变化。
+- 0.1.2 是 pre-1.0 版本，行为和 Adapter 契约仍可能变化。
 
 ## 8. 下一步阅读
 

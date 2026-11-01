@@ -10,7 +10,7 @@
 - 视觉/同步：**实体缩小到 0.45 × 0.65，2×2 可放入一格；四片独立翼有 idle 摆动，渲染层有 0.32 格悬浮偏移与 ±0.055 格 idle 浮动；位置同步改为每 tick**
 - 游戏内交互：**新增 `/swarmie list/select/selected/spawn/remove`；`fly/stop/status/results` 可省略 target，默认使用选中/最近机器人**
 - 设备总线：**SDB v0（PCI-inspired）规范已写入 `docs/device-bus-v0.md`：配置空间、BAR、capability、IRQ、生命周期、block_probe 与 mock provider；仍是 draft，无实现**
-- 发布状态：**0.1.1 pre-1.0 feature release 已发布；`main` 进入 0.1.2-SNAPSHOT；发布说明见 `docs/releases/v0.1.1.md`**
+- 发布状态：**0.1.2 pre-1.0 patch release 已发布；`main` 进入 0.1.2；发布说明见 `docs/releases/v0.1.2.md`**
 - 环境状态：**runtime 为唯一活动工作区；未修改 ACL/系统设置；测试 transport/harness/DCPU/pause 配置已恢复默认**
 - 最后更新：2026-11-02
 - 验证报告：[`docs/api-v1-runtime-validation.md`](docs/api-v1-runtime-validation.md)；DCPU：[`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md)

@@ -2,7 +2,7 @@ English | [简体中文](python-sdk.zh-CN.md)
 
 # Python SDK
 
-> Status: first version (`0.1.1`), Python 3.9+ standard library only, pre-1.0.
+> Status: first version (`0.1.2`), Python 3.9+ standard library only, pre-1.0.
 > It speaks the existing localhost JSONL development transport; it is not a
 > remote or authenticated interface.
 
@@ -319,4 +319,4 @@ integrated-server run is recorded in
 - no dedicated-server, second-client or multiplayer verification; in-game
   validation is limited to real Minecraft 26.3 integrated-server sessions for
   state/setpoints and lifecycle (see `docs/api-v1-runtime-validation.md`);
-- Python SDK version `0.1.1` and Adapter contract `0.1` are pre-stable.
+- Python SDK version `0.1.2` and Adapter contract `0.1` are pre-stable.

@@ -19,7 +19,7 @@
 | 合计 | A | **87 passed** |
 | 无缓存测试 | A | `cleanTest test --no-build-cache` 通过 |
 | 离线构建 | S | `--offline build` 通过 |
-| 0.1.1 Release JAR | S | 238,293 bytes，SHA-256 `0913341d63e587200d5bbccc91e1309e4ee7297e36abaa31ece56d60490ed031` |
+| 0.1.2 Release JAR | S | 243,656 bytes，SHA-256 `0883966f087167af65e0a079deec261c10577027de818738a688b3e71af7ce9a` |
 | 刷怪蛋物品/模型/配方/进度/语言数据 | A | 3 项数据契约测试通过 |
 | Python SDK（mock server） | P | 66 passed |
 
