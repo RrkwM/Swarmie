@@ -42,7 +42,7 @@ remote-network project.
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | passing |
-| JUnit | 71 passing |
+| JUnit | 75 passing |
 | Release JAR | `swarmie-0.1.0.jar` |
 | JAR SHA-256 | `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | Development JAR | `swarmie-0.1.1-SNAPSHOT.jar` |
@@ -150,6 +150,7 @@ Hard rules:
 | Developer setup, architecture, Adapter, testing | [`docs/developer-guide.md`](docs/developer-guide.md) |
 | Language policy / 中文文档 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) |
 | Contract fields, errors and serialization | [`docs/adapter-contract.md`](docs/adapter-contract.md) |
+| Current Python/JSONL API quick reference | [`docs/api-current.md`](docs/api-current.md) |
 | Registry, lifecycle, serverEpoch, event ring | [`docs/adapter-registry.md`](docs/adapter-registry.md) |
 | Inbound/outbound, idempotency, batch, cancel | [`docs/adapter-io.md`](docs/adapter-io.md) |
 | Four commands: state, side effects, limits | [`docs/adapter-command-specs.md`](docs/adapter-command-specs.md) |

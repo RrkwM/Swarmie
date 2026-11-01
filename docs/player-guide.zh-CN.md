@@ -74,7 +74,21 @@ Get-FileHash .\swarmie-0.1.0.jar -Algorithm SHA256
 
 ## 4. 基础命令
 
-所有 `/swarmie` 命令都需要 OP/权限等级 2。
+所有 `/swarmie` 命令都需要 OP/权限等级 2；它们是管理员/开发者调试命令，不是公共 JSONL/Python API。
+
+### 帮助
+
+```mcfunction
+/swarmie help
+/swarmie help flight
+/swarmie help actions
+/swarmie help inventory
+/swarmie help query
+/swarmie help adapter
+/swarmie help lifecycle
+```
+
+帮助会列出实际语法，并明确标注 `velocity`、`inventory give` 等调试操作。DCPU/MMIO 是 test-only 实验，没有游戏内命令。
 
 ### 飞行与停止
 

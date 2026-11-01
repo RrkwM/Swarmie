@@ -193,6 +193,7 @@ commands return `ALREADY_TERMINAL`.
 
 Details:
 
+- [`api-current.md`](api-current.md)
 - [`adapter-registry.md`](adapter-registry.md)
 - [`adapter-io.md`](adapter-io.md)
 - [`adapter-command-specs.md`](adapter-command-specs.md)
@@ -203,7 +204,7 @@ Details:
 ./gradlew test
 ```
 
-Current baseline: 71 main-mod JUnit tests and 12 contract tests; the Python SDK
+Current baseline: 75 main-mod JUnit tests and 12 contract tests; the Python SDK
 has 66 mock-server tests. The DCPU/MMIO experiment is a separate test-only
 spike, not a public API; see
 [`dcpu-mmio-bridge-experiment.md`](dcpu-mmio-bridge-experiment.md).

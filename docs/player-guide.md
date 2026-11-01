@@ -77,7 +77,24 @@ Do not write only `swarmie`; it is parsed as `minecraft:swarmie`.
 
 ## 4. Basic commands
 
-All `/swarmie` commands require OP/permission level 2.
+All `/swarmie` commands require OP/permission level 2. They are
+administrator/developer debug commands, not the public JSONL/Python API.
+
+### Help
+
+```mcfunction
+/swarmie help
+/swarmie help flight
+/swarmie help actions
+/swarmie help inventory
+/swarmie help query
+/swarmie help adapter
+/swarmie help lifecycle
+```
+
+Help lists the actual syntax and warns about debug-only operations such as
+`velocity` and `inventory give`. DCPU/MMIO is test-only and has no in-game
+command.
 
 ### Flight and stop
 

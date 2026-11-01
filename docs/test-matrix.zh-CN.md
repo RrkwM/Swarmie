@@ -15,8 +15,8 @@
 | 契约无 Minecraft/Fabric import | S | boundary check: 30 files |
 | 契约包被最终 JAR 收录 | S | `dev/swarmie/contract/*.class` |
 | `:contract:test` | A | 12 passed |
-| 根 `test` | A | 71 passed |
-| 合计 | A | **83 passed** |
+| 根 `test` | A | 75 passed |
+| 合计 | A | **87 passed** |
 | 无缓存测试 | A | `cleanTest test --no-build-cache` 通过 |
 | 离线构建 | S | `--offline build` 通过 |
 | 0.1.0 Release JAR | S | 162,555 bytes，SHA-256 `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
@@ -47,6 +47,8 @@ MotionDeviceTest              4
 ClockDeviceTest               1
 DcpuFixtureProgramTest        2
 DcpuRuntimeBridgeTest         1
+SwarmieCommandHelpTest        3
+SwarmieCommandRegistrationTest 1
 ```
 
 ## 2. 真实客户端

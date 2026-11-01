@@ -59,6 +59,20 @@ public final class SwarmieCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         var root = Commands.literal("swarmie");
         root.requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                .then(Commands.literal("help")
+                        .executes(context -> sendHelp(context, ""))
+                        .then(Commands.literal("flight")
+                                .executes(context -> sendHelp(context, "flight")))
+                        .then(Commands.literal("actions")
+                                .executes(context -> sendHelp(context, "actions")))
+                        .then(Commands.literal("inventory")
+                                .executes(context -> sendHelp(context, "inventory")))
+                        .then(Commands.literal("query")
+                                .executes(context -> sendHelp(context, "query")))
+                        .then(Commands.literal("adapter")
+                                .executes(context -> sendHelp(context, "adapter")))
+                        .then(Commands.literal("lifecycle")
+                                .executes(context -> sendHelp(context, "lifecycle"))))
                 // Low-level convenience: directly set the flight target, no Runtime record.
                 .then(Commands.literal("velocity")
                         .then(Commands.argument("targets", EntityArgument.entities())
@@ -158,6 +172,13 @@ public final class SwarmieCommands {
                                                                                                 StringArgumentType.string())
                                                                                         .executes(SwarmieCommands::adapterSubmitFly))))))))));
         dispatcher.register(root);
+    }
+
+    private static int sendHelp(CommandContext<CommandSourceStack> context, String topic) {
+        for (String line : SwarmieCommandHelp.lines(topic)) {
+            context.getSource().sendSuccess(() -> Component.literal(line), false);
+        }
+        return 1;
     }
 
     private static int setVelocity(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {

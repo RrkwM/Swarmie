@@ -38,7 +38,7 @@ Swarmie 增加了一个真实的 Minecraft `Entity`，包含：
 | Minecraft | 26.3 |
 | Fabric Loader / API | 0.20.1 / 0.165.0+26.3 |
 | CI | 通过 |
-| JUnit | 71 项通过 |
+| JUnit | 75 项通过 |
 | Release JAR | `swarmie-0.1.0.jar` |
 | JAR SHA-256 | `fe3007e7df6ba694e6291149f49b50ae48cedabfa2946e56c42f9d0502a34f9a` |
 | 开发构建 | `swarmie-0.1.1-SNAPSHOT.jar` |
@@ -141,11 +141,14 @@ Adapter 层
 | 开发环境、架构、Adapter、测试 | [`docs/developer-guide.zh-CN.md`](docs/developer-guide.zh-CN.md) |
 | 语言政策 / English docs | [`docs/LANGUAGE.zh-CN.md`](docs/LANGUAGE.zh-CN.md) |
 | 契约字段、错误与序列化 | [`docs/adapter-contract.zh-CN.md`](docs/adapter-contract.zh-CN.md) |
+| 当前 Python/JSONL API 速查 | [`docs/api-current.md`](docs/api-current.md) |
 | 注册表、生命周期、serverEpoch、事件环 | [`docs/adapter-registry.zh-CN.md`](docs/adapter-registry.zh-CN.md) |
 | 入站/出站、幂等、批量、取消 | [`docs/adapter-io.zh-CN.md`](docs/adapter-io.zh-CN.md) |
 | 四命令状态、副作用与限制 | [`docs/adapter-command-specs.zh-CN.md`](docs/adapter-command-specs.zh-CN.md) |
 | localhost JSONL/Python 开发传输 | [`docs/local-transport.zh-CN.md`](docs/local-transport.zh-CN.md) |
 | Python SDK（发现、命令、事件） | [`docs/python-sdk.zh-CN.md`](docs/python-sdk.zh-CN.md) |
+| 最小农业准备流程 | [`docs/farming-workflow.md`](docs/farming-workflow.md) |
+| DCPU-16/MMIO 实验 | [`docs/dcpu-mmio-bridge-experiment.md`](docs/dcpu-mmio-bridge-experiment.md) |
 | 语义化版本与发布流程 | [`docs/versioning.zh-CN.md`](docs/versioning.zh-CN.md) |
 | 变更日志 | [`CHANGELOG.zh-CN.md`](CHANGELOG.zh-CN.md) |
 | 测试证据矩阵 | [`docs/test-matrix.zh-CN.md`](docs/test-matrix.zh-CN.md) |

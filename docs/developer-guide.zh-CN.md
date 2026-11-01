@@ -189,7 +189,7 @@ CancelAck ack = SwarmieAdapter.cancel(robot, "my-correlation-id");
 ./gradlew test
 ```
 
-当前基线：主 Mod 71 项 JUnit、契约 12 项 JUnit；Python SDK 66 项 mock 测试。DCPU/MMIO 是独立的 test-only spike，不是公共 API；见
+当前基线：主 Mod 75 项 JUnit、契约 12 项 JUnit；Python SDK 66 项 mock 测试。DCPU/MMIO 是独立的 test-only spike，不是公共 API；见
 [`dcpu-mmio-bridge-experiment.md`](dcpu-mmio-bridge-experiment.md)。
 
 测试分布：

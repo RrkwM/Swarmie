@@ -234,7 +234,7 @@ Fabric development-environment gate and explicit config are both required.
 | Real Minecraft | integrated-server epoch/robot run above; actual Entity state, movement, stop, ownership rejection and cleanup |
 | Unverified | native-collision-to-MMIO fault mapping, unloading during active guest command, multiple guest instances, persistence |
 
-Test totals at this commit: main **71**, contract **12**, Python SDK **66**, audit
+Test totals at this commit: main **75**, contract **12**, Python SDK **66**, audit
 **33**; all passed. These are separate from the real-server evidence.
 
 ## 9. Why this is only an experiment
