@@ -97,6 +97,8 @@ World: disposable `New World`, real integrated server.
 | DCPU guest motion bridge | C | MMIO timed flight; actual Entity moved 1.1 blocks; terminal IRQ handled; cleanup stopped VM |
 | DCPU remote-motion exclusion | C | setpoint and TIMED_FLIGHT rejected `MOTION_CHANNEL_BUSY` while guest owned motion |
 | DCPU disabled gate | C | `development=true, configured=false` -> experiment disabled |
+| Quick command selection/CRUD | C | `/swarmie spawn`, `list`, `status`, short `fly`/`stop`, and explicit `remove` worked via chat; tested robot `6c9daf28…` removed |
+| Hover visual offset | C | Client screenshot shows the shell floating above the block foot position; no gameplay position change |
 | Python SDK mining smoke | C | `MINE FAILED EXECUTION_FAILED 'target is air'` at the chosen test coordinates; reported explicitly |
 | Event-ring live overflow | U | not filled to 1024; small-capacity JUnit |
 | Batch live submission | U | JUnit covers limits/per-item semantics; no live batch command |

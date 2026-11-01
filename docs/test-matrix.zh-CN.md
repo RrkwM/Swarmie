@@ -97,6 +97,8 @@ SwarmieCommandRegistrationTest 1
 | DCPU guest motion bridge | C | MMIO timed flight；Entity 实际移动 1.1 blocks；终态 IRQ；cleanup 停止 VM |
 | DCPU remote-motion exclusion | C | guest 持有 motion 时 setpoint/TIMED_FLIGHT 返回 `MOTION_CHANNEL_BUSY` |
 | DCPU disabled gate | C | `development=true, configured=false` -> disabled |
+| 快捷命令选择/CRUD | C | `/swarmie spawn`、`list`、`status`、短形式 `fly`/`stop`、显式 `remove` 通过聊天栏实测；测试机器人 `6c9daf28…` 已删除 |
+| 悬浮视觉偏移 | C | 客户端截图确认外壳悬浮于实体脚点上方；不改变 gameplay 位置 |
 | Python SDK 挖掘 smoke | C | 所选测试坐标返回 `MINE FAILED EXECUTION_FAILED 'target is air'`，被明确报告 |
 | 事件环实机溢出 | U | 未填满 1024；小容量 JUnit 已验证 |
 | 批量实机提交 | U | JUnit 已覆盖 batch 上限/逐条语义；无实机 batch 命令 |
